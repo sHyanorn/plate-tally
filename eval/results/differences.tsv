@@ -1,0 +1,29 @@
+comparison	metric	difference	low	high	verdict	partial	undefined_resamples
+p2 minus p1 (claude-haiku-5-5)	mae	6.3741413507168545	-4.310658091161627	17.04390017019837	not distinguished	false	
+p2 minus p1 (claude-haiku-5-5)	signed_mean_error	-10.773405043763447	-24.477452293363594	3.1371027774640425	not distinguished	false	
+p2 minus p1 (claude-haiku-5-5)	median_abs_error	-3.7557525	-22.652880575000022	9.959113999999985	not distinguished	false	
+p2 minus p1 (claude-haiku-5-5)	mape	-0.014263073974267071	-0.07033325225759099	0.042568898028264364	not distinguished	false	
+p2 minus p1 (claude-haiku-5-5)	mean_relative_bias	-0.1007148110502426	-0.16446864348145349	-0.03589284989489952	negative	false	
+p2 minus p1 (claude-haiku-5-5)	within_20	0.0019479902442114394	-0.0596465255399501	0.06304304969398632	not distinguished	false	
+p2 minus p1 (claude-haiku-5-5)	within_30	-0.016328275949447246	-0.07871162121569111	0.045784301476444085	not distinguished	false	
+p2 minus p1 (claude-sonnet-5-5)	mae	-14.61782355958863	-32.913477967525054	2.2174549701001016	not distinguished	false	
+p2 minus p1 (claude-sonnet-5-5)	signed_mean_error	-45.523370499752424	-69.38165109453107	-20.101561611106607	negative	false	
+p2 minus p1 (claude-sonnet-5-5)	median_abs_error	-17.945296999999982	-40.423384049999974	-4.556137499999977	negative	false	
+p2 minus p1 (claude-sonnet-5-5)	mape	-0.07716248240012996	-0.1770181088743109	0.010582096171292315	not distinguished	false	
+p2 minus p1 (claude-sonnet-5-5)	mean_relative_bias	-0.1963165039511596	-0.3131464964715733	-0.08573652761322566	negative	false	
+p2 minus p1 (claude-sonnet-5-5)	within_20	0.04194742336528423	-0.060291417371570045	0.14161218513403362	not distinguished	false	
+p2 minus p1 (claude-sonnet-5-5)	within_30	0.0019455252918287869	-0.10294577205882349	0.10827209953748941	not distinguished	false	
+claude-sonnet-5-5 minus claude-haiku-5-5 (p1)	mae	-8.118629379807501	-25.448713612853535	11.023605371861544	not distinguished	false	
+claude-sonnet-5-5 minus claude-haiku-5-5 (p1)	signed_mean_error	-15.037586109943227	-40.31218333862876	8.799821613062745	not distinguished	false	
+claude-sonnet-5-5 minus claude-haiku-5-5 (p1)	median_abs_error	-1.4347230000000195	-23.60476700000001	20.106702349999917	not distinguished	false	
+claude-sonnet-5-5 minus claude-haiku-5-5 (p1)	mape	-0.09240235086704057	-0.192987431890847	0.012832554089421204	not distinguished	false	
+claude-sonnet-5-5 minus claude-haiku-5-5 (p1)	mean_relative_bias	-0.10803078337838606	-0.22659609694234037	0.01717638612028682	not distinguished	false	
+claude-sonnet-5-5 minus claude-haiku-5-5 (p1)	within_20	0.03127213844752552	-0.066419787903334	0.13152485052940976	not distinguished	false	
+claude-sonnet-5-5 minus claude-haiku-5-5 (p1)	within_30	0.1058091286307054	-0.000941767853639544	0.21259819307018474	not distinguished	false	
+claude-sonnet-5-5 minus claude-haiku-5-5 (p2)	mae	-29.110594290112985	-39.55981537266897	-18.834347343964133	negative	false	
+claude-sonnet-5-5 minus claude-haiku-5-5 (p2)	signed_mean_error	-49.787551565932205	-61.459545279496545	-38.261751928651556	negative	false	
+claude-sonnet-5-5 minus claude-haiku-5-5 (p2)	median_abs_error	-15.624267500000002	-33.69875132499997	-2.464304949999994	negative	false	
+claude-sonnet-5-5 minus claude-haiku-5-5 (p2)	mape	-0.15530175929290346	-0.21848787233929615	-0.09370396003601286	negative	false	
+claude-sonnet-5-5 minus claude-haiku-5-5 (p2)	mean_relative_bias	-0.20363247627930306	-0.274089121222169	-0.13406610426706334	negative	false	
+claude-sonnet-5-5 minus claude-haiku-5-5 (p2)	within_20	0.07127157156859831	0.005943817621449185	0.13819302404191514	positive	false	
+claude-sonnet-5-5 minus claude-haiku-5-5 (p2)	within_30	0.12408292987198144	0.052900845191332146	0.19496997781105016	positive	false	

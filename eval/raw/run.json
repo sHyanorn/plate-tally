@@ -1,0 +1,44 @@
+{
+  "config": {
+    "bootstrap_resamples": 10000,
+    "bootstrap_seed": 20261123,
+    "cost_stop_usd": 3.5,
+    "max_tokens": 600,
+    "min_ref_kcal": 50,
+    "models": [
+      [
+        "haiku",
+        "claude-haiku-5-5"
+      ],
+      [
+        "sonnet",
+        "claude-sonnet-5-5"
+      ]
+    ],
+    "prices_usd_per_million_tokens": {
+      "claude-haiku-5-5": [
+        0.1,
+        0.5
+      ],
+      "claude-sonnet-5-5": [
+        2.0,
+        10.0
+      ]
+    },
+    "prompts": [
+      "p1",
+      "p2"
+    ],
+    "sample_seed": 20261122,
+    "sample_size": 300,
+    "workers_per_cell": 4
+  },
+  "sdk_version": "2.12.0",
+  "sha256": {
+    "evaluation-protocol.md": "16f54087088df19c0365272006c1efa8cf1bec6affd363e48a7478b1d32f91fb",
+    "p1.txt": "100eabaf7d3a9ca66aaa342bc5acf5360958a5744ac3ef613bd49b6c15ec4185",
+    "p2.txt": "ee8c04c67631bf377987f2821833d3f270523707010f804be3eba4216b9f2288",
+    "sample_ids.txt": "2490c6a5904e9244ea5d727e791b91a85c56d8c1eccd25a4ef50a3ef7e7ee15e"
+  },
+  "utc": "2026-11-23T02:05:28+00:00"
+}

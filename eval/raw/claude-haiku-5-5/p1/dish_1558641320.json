@@ -1,0 +1,80 @@
+{
+  "attempts": [
+    {
+      "retry_after": null,
+      "status": 200
+    }
+  ],
+  "dish_id": "dish_1558641320",
+  "elapsed_s": 0.929,
+  "error": null,
+  "image_height": 480,
+  "image_sha256": "f7c3f0fc45767264dfec06617379e8848db59b5fc9c8c123e40b1a37bfc34179",
+  "image_width": 640,
+  "model": "claude-haiku-5-5",
+  "prompt_id": "p1",
+  "prompt_sha256": "100eabaf7d3a9ca66aaa342bc5acf5360958a5744ac3ef613bd49b6c15ec4185",
+  "request": {
+    "max_tokens": 600,
+    "messages": [
+      {
+        "content": [
+          {
+            "source": {
+              "media_type": "image/png",
+              "sha256": "f7c3f0fc45767264dfec06617379e8848db59b5fc9c8c123e40b1a37bfc34179",
+              "type": "base64"
+            },
+            "type": "image"
+          },
+          {
+            "text": "This is an overhead photo of one plate of food from a cafeteria.\nEstimate the total food energy of everything on the plate, in kilocalories (kcal).\nReply with only one JSON object in exactly this shape, and nothing else:\n{\"total_kcal\": <number>}",
+            "type": "text"
+          }
+        ],
+        "role": "user"
+      }
+    ],
+    "model": "claude-haiku-5-5",
+    "thinking": {
+      "type": "disabled"
+    }
+  },
+  "response": {
+    "container": null,
+    "content": [
+      {
+        "citations": null,
+        "text": "Estimating items:\n- Apple (medium, ~180g): ~95 kcal\n- Carrot slices (~100g): ~41 kcal\n- Corn cobs halves (2 pieces, ~120g total): ~100 kcal\n- Cherry tomatoes (~9 small, ~135g): ~25 kcal\n\nTotal \u2248 261 kcal\n\n{\"total_kcal\": 260}",
+        "type": "text"
+      }
+    ],
+    "diagnostics": null,
+    "id": "msg_011ChK3L4UFrQ3h9LFYEaGqY",
+    "model": "claude-haiku-5-5",
+    "role": "assistant",
+    "stop_details": null,
+    "stop_reason": "end_turn",
+    "stop_sequence": null,
+    "type": "message",
+    "usage": {
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "inference_geo": "global",
+      "input_tokens": 512,
+      "output_tokens": 133,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "server_tool_use": null,
+      "service_tier": "standard",
+      "speed": "standard"
+    }
+  },
+  "sdk_version": "2.12.0",
+  "started_utc": "2026-11-23T02:05:34+00:00"
+}

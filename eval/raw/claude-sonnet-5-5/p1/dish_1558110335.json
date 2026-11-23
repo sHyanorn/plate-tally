@@ -1,0 +1,80 @@
+{
+  "attempts": [
+    {
+      "retry_after": null,
+      "status": 200
+    }
+  ],
+  "dish_id": "dish_1558110335",
+  "elapsed_s": 1.809,
+  "error": null,
+  "image_height": 480,
+  "image_sha256": "7064a71c456696830f5f0d4fe79f2fde20100a14065ce652ab3e2eab843ef1e1",
+  "image_width": 640,
+  "model": "claude-sonnet-5-5",
+  "prompt_id": "p1",
+  "prompt_sha256": "100eabaf7d3a9ca66aaa342bc5acf5360958a5744ac3ef613bd49b6c15ec4185",
+  "request": {
+    "max_tokens": 600,
+    "messages": [
+      {
+        "content": [
+          {
+            "source": {
+              "media_type": "image/png",
+              "sha256": "7064a71c456696830f5f0d4fe79f2fde20100a14065ce652ab3e2eab843ef1e1",
+              "type": "base64"
+            },
+            "type": "image"
+          },
+          {
+            "text": "This is an overhead photo of one plate of food from a cafeteria.\nEstimate the total food energy of everything on the plate, in kilocalories (kcal).\nReply with only one JSON object in exactly this shape, and nothing else:\n{\"total_kcal\": <number>}",
+            "type": "text"
+          }
+        ],
+        "role": "user"
+      }
+    ],
+    "model": "claude-sonnet-5-5",
+    "thinking": {
+      "type": "between_tools"
+    }
+  },
+  "response": {
+    "container": null,
+    "content": [
+      {
+        "citations": null,
+        "text": "The plate holds what looks like 2-3 small pieces of cooked bacon (cafeteria, likely partially broken pieces). A cooked bacon slice is about 40-45 kcal; these look like roughly 2.5 slices' worth, so about 100 kcal.\n\n{\"total_kcal\": 100}",
+        "type": "text"
+      }
+    ],
+    "diagnostics": null,
+    "id": "msg_011ChK3SkjbiAn9ES7F6sjZG",
+    "model": "claude-sonnet-5-5",
+    "role": "assistant",
+    "stop_details": null,
+    "stop_reason": "end_turn",
+    "stop_sequence": null,
+    "type": "message",
+    "usage": {
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "inference_geo": "global",
+      "input_tokens": 512,
+      "output_tokens": 102,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "server_tool_use": null,
+      "service_tier": "standard",
+      "speed": "standard"
+    }
+  },
+  "sdk_version": "2.12.0",
+  "started_utc": "2026-11-23T02:07:05+00:00"
+}

@@ -1,0 +1,80 @@
+{
+  "attempts": [
+    {
+      "retry_after": null,
+      "status": 200
+    }
+  ],
+  "dish_id": "dish_1565118782",
+  "elapsed_s": 1.801,
+  "error": null,
+  "image_height": 480,
+  "image_sha256": "cf9c066043ed48f487ef749df38790331fd2eff643807f21ee5fea7df5f67df1",
+  "image_width": 640,
+  "model": "claude-sonnet-5-5",
+  "prompt_id": "p2",
+  "prompt_sha256": "ee8c04c67631bf377987f2821833d3f270523707010f804be3eba4216b9f2288",
+  "request": {
+    "max_tokens": 600,
+    "messages": [
+      {
+        "content": [
+          {
+            "source": {
+              "media_type": "image/png",
+              "sha256": "cf9c066043ed48f487ef749df38790331fd2eff643807f21ee5fea7df5f67df1",
+              "type": "base64"
+            },
+            "type": "image"
+          },
+          {
+            "text": "This is an overhead photo of one plate of food from a cafeteria.\nList every visible food on the plate, at most 20 items. For each item, estimate its weight in grams and its food energy in kilocalories (kcal).\nReply with only one JSON object in exactly this shape, and nothing else:\n{\"items\": [{\"name\": \"<food name>\", \"grams\": <number>, \"kcal\": <number>}]}\nUse an empty list if no food is visible.",
+            "type": "text"
+          }
+        ],
+        "role": "user"
+      }
+    ],
+    "model": "claude-sonnet-5-5",
+    "thinking": {
+      "type": "between_tools"
+    }
+  },
+  "response": {
+    "container": null,
+    "content": [
+      {
+        "citations": null,
+        "text": "{\"items\": [{\"name\": \"arugula and spinach salad greens\", \"grams\": 60, \"kcal\": 15}, {\"name\": \"quinoa/couscous mixed in salad\", \"grams\": 70, \"kcal\": 90}, {\"name\": \"roasted pork or lamb slices\", \"grams\": 110, \"kcal\": 250}, {\"name\": \"sauteed chard/spinach greens\", \"grams\": 55, \"kcal\": 40}, {\"name\": \"roasted beet pieces\", \"grams\": 30, \"kcal\": 15}, {\"name\": \"caramelized onion\", \"grams\": 10, \"kcal\": 12}]}",
+        "type": "text"
+      }
+    ],
+    "diagnostics": null,
+    "id": "msg_011ChK3hkCmjTEmXJDtWV5TE",
+    "model": "claude-sonnet-5-5",
+    "role": "assistant",
+    "stop_details": null,
+    "stop_reason": "end_turn",
+    "stop_sequence": null,
+    "type": "message",
+    "usage": {
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "inference_geo": "global",
+      "input_tokens": 566,
+      "output_tokens": 202,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "server_tool_use": null,
+      "service_tier": "standard",
+      "speed": "standard"
+    }
+  },
+  "sdk_version": "2.12.0",
+  "started_utc": "2026-11-23T02:10:28+00:00"
+}

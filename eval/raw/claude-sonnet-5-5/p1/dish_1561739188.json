@@ -1,0 +1,80 @@
+{
+  "attempts": [
+    {
+      "retry_after": null,
+      "status": 200
+    }
+  ],
+  "dish_id": "dish_1561739188",
+  "elapsed_s": 1.066,
+  "error": null,
+  "image_height": 480,
+  "image_sha256": "57cf016c2913489ecc7f0029188846a52ffd76cd67f7090fc2219cba713e4927",
+  "image_width": 640,
+  "model": "claude-sonnet-5-5",
+  "prompt_id": "p1",
+  "prompt_sha256": "100eabaf7d3a9ca66aaa342bc5acf5360958a5744ac3ef613bd49b6c15ec4185",
+  "request": {
+    "max_tokens": 600,
+    "messages": [
+      {
+        "content": [
+          {
+            "source": {
+              "media_type": "image/png",
+              "sha256": "57cf016c2913489ecc7f0029188846a52ffd76cd67f7090fc2219cba713e4927",
+              "type": "base64"
+            },
+            "type": "image"
+          },
+          {
+            "text": "This is an overhead photo of one plate of food from a cafeteria.\nEstimate the total food energy of everything on the plate, in kilocalories (kcal).\nReply with only one JSON object in exactly this shape, and nothing else:\n{\"total_kcal\": <number>}",
+            "type": "text"
+          }
+        ],
+        "role": "user"
+      }
+    ],
+    "model": "claude-sonnet-5-5",
+    "thinking": {
+      "type": "between_tools"
+    }
+  },
+  "response": {
+    "container": null,
+    "content": [
+      {
+        "citations": null,
+        "text": "Estimate: roasted sweet potato cubes ~8 pieces, about 100 g \u2192 ~110 kcal (with oil maybe 130). Berries: raspberries ~40 g (~20 kcal), blackberries 3 (~15 g, ~7 kcal). Total \u2248 160.\n\n{\"total_kcal\": 160}",
+        "type": "text"
+      }
+    ],
+    "diagnostics": null,
+    "id": "msg_011ChK3W3gfCHLX75TRyMZ8H",
+    "model": "claude-sonnet-5-5",
+    "role": "assistant",
+    "stop_details": null,
+    "stop_reason": "end_turn",
+    "stop_sequence": null,
+    "type": "message",
+    "usage": {
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "inference_geo": "global",
+      "input_tokens": 512,
+      "output_tokens": 112,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "server_tool_use": null,
+      "service_tier": "standard",
+      "speed": "standard"
+    }
+  },
+  "sdk_version": "2.12.0",
+  "started_utc": "2026-11-23T02:07:49+00:00"
+}
