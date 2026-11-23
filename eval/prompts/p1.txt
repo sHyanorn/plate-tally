@@ -1,0 +1,4 @@
+This is an overhead photo of one plate of food from a cafeteria.
+Estimate the total food energy of everything on the plate, in kilocalories (kcal).
+Reply with only one JSON object in exactly this shape, and nothing else:
+{"total_kcal": <number>}

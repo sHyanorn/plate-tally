@@ -16,7 +16,7 @@ Registered before any paid call:
 
 - [x] M0.1 Licence (MIT), repository rules, string check script and its tests.
 - [x] M0.2 Specification, tasks, decisions.
-- [ ] M0.3 Evaluation protocol registered, with the evaluation code and its tests.
+- [x] M0.3 Evaluation protocol registered, with the evaluation code and its tests.
 
 Run and decide:
 

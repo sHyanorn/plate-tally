@@ -20,3 +20,20 @@ jobs:
 
       - name: Test the check script
         run: python3 -m unittest discover -s scripts -p "test_*.py"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+
+      - name: Install
+        run: uv sync --project eval --locked
+
+      - name: Lint
+        run: |
+          uv run --project eval ruff check eval scripts
+          uv run --project eval ruff format --check eval scripts
+
+      - name: Test the evaluation code
+        run: uv run --project eval pytest eval/tests
+
+      - name: Dry run of the evaluation
+        run: uv run --project eval python -m plate_eval run --dry-run
