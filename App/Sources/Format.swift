@@ -17,16 +17,16 @@ func usd(_ amount: Decimal) -> String {
 /// R9: every energy figure is an estimate, so it carries the approximation sign. A sum of nothing is exactly 0.
 func kcalText(_ kcal: Double) -> String {
     if kcal == 0 { return "0 kcal" }
-    return "≈ \(wholeKcal(kcal)) kcal"
+    return "≈ \(wholeNumber(kcal)) kcal"
 }
 
 func estimateSign(_ kcal: Double) -> String {
     kcal == 0 ? "" : "≈"
 }
 
-/// Whole kcal with the grouping of the region: 1,275.
-func wholeKcal(_ kcal: Double) -> String {
-    kcal.formatted(.number.precision(.fractionLength(0)))
+/// A whole number with the grouping of the region, for a figure nobody edits: 1,275.
+func wholeNumber(_ value: Double) -> String {
+    value.formatted(.number.precision(.fractionLength(0)))
 }
 
 func gramsText(_ grams: Double) -> String {

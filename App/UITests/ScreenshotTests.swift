@@ -167,6 +167,50 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
+    // MARK: Converter
+
+    func testTheConverterTurnsLabelEnergyIntoAnItem() {
+        eachAppearance(["-ui-seed"]) { app, look in
+            XCTAssertTrue(app.staticTexts["day-title"].waitForExistence(timeout: 10))
+            app.buttons["convert"].tap()
+            XCTAssertTrue(app.staticTexts["converter-title"].waitForExistence(timeout: 5))
+
+            // Per serving, 1250 kJ are 1250 / 4.18 = 299.04 kcal.
+            fill(app.textFields["converter-name"], "Muesli bar")
+            fill(app.textFields["converter-grams"], "35")
+            fill(app.textFields["converter-kj"], "1250")
+            XCTAssertEqual(app.textFields["converter-kcal"].value as? String, "299")
+            snap("converter-serving", look)
+
+            // Per 100 g, 1520 kJ for 35 g eaten are 127.27 kcal and 532 kJ.
+            app.buttons["Per 100 g"].tap()
+            fill(app.textFields["converter-kj"], "1520")
+            XCTAssertEqual(app.textFields["converter-kcal"].value as? String, "363.6")
+            XCTAssertEqual(app.staticTexts["converter-result"].label, "= 127 kcal")
+            snap("converter-100g", look)
+
+            // The latest meal of the seed is lunch at 12:05: 656 + 127.27 kcal.
+            app.buttons["converter-add"].tap()
+            XCTAssertTrue(app.staticTexts["day-title"].waitForExistence(timeout: 5))
+            XCTAssertEqual(app.staticTexts["intake"].label, "≈ 783 kcal")
+            XCTAssertEqual(app.buttons.matching(identifier: "meal-row").count, 2)
+        }
+        // A day without meals offers a new meal only, and the item starts it.
+        eachAppearance(["-ui-language", "zh"], looks: ["light"]) { app, look in
+            XCTAssertTrue(app.buttons["convert"].waitForExistence(timeout: 10))
+            app.buttons["convert"].tap()
+            XCTAssertTrue(app.staticTexts["converter-title"].waitForExistence(timeout: 5))
+            app.buttons["每 100 g"].tap()
+            fill(app.textFields["converter-name"], "Muesli bar")
+            fill(app.textFields["converter-grams"], "35")
+            fill(app.textFields["converter-kj"], "1520")
+            snap("converter-100g", look + "-zh")
+            app.buttons["converter-add"].tap()
+            XCTAssertTrue(app.staticTexts["day-title"].waitForExistence(timeout: 5))
+            XCTAssertEqual(app.staticTexts["intake"].label, "≈ 127 kcal")
+        }
+    }
+
     // MARK: Chinese
 
     func testTheDayAndAMealInChinese() {

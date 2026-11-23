@@ -14,6 +14,7 @@ struct DayView: View {
     @State private var selected: Date
     @State private var path: [UUID] = []
     @State private var showSettings = false
+    @State private var showConverter = false
     @State private var choosingSource = false
     @State private var showCamera = false
     @State private var showLibrary = false
@@ -83,16 +84,27 @@ struct DayView: View {
             }
             .navigationDestination(for: UUID.self) { StoredMealView(model: model, id: $0) }
             .safeAreaBar(edge: .bottom) {
-                Button(action: startCapture) {
-                    Label("Add meal", systemImage: "camera").frame(maxWidth: .infinity)
+                HStack(spacing: 10) {
+                    Button(action: startCapture) {
+                        Label("Add meal", systemImage: "camera").frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(PillButtonStyle())
+                    .accessibilityIdentifier("add-meal")
+                    Button {
+                        showConverter = true
+                    } label: {
+                        Text(verbatim: "kJ→kcal")
+                    }
+                    .buttonStyle(PillButtonStyle(kind: .quiet))
+                    .accessibilityLabel("Convert kJ to kcal")
+                    .accessibilityIdentifier("convert")
                 }
-                .buttonStyle(PillButtonStyle())
-                .accessibilityIdentifier("add-meal")
                 .padding(.horizontal, Metrics.margin)
                 .padding(.vertical, 8)
             }
         }
         .sheet(isPresented: $showSettings) { SettingsView(model: model, keys: keys) }
+        .sheet(isPresented: $showConverter) { ConverterView(model: model) }
         .fullScreenCover(item: $photo) { photo in
             CaptureFlow(model: model, photo: photo) { self.photo = nil }
         }

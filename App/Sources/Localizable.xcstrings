@@ -120,6 +120,23 @@
         }
       }
     },
+    "Add to %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add to %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "加入 %@"
+          }
+        }
+      }
+    },
     "Age (years)": {
       "extractionState": "manual",
       "localizations": {
@@ -337,6 +354,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "关闭"
+          }
+        }
+      }
+    },
+    "Convert kJ to kcal": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Convert kJ to kcal"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "kJ 换算为 kcal"
           }
         }
       }
@@ -596,6 +630,23 @@
         }
       }
     },
+    "Energy converter": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Energy converter"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "能量换算"
+          }
+        }
+      }
+    },
     "Energy unit": {
       "extractionState": "manual",
       "localizations": {
@@ -660,6 +711,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "重量（g）"
+          }
+        }
+      }
+    },
+    "Grams eaten": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grams eaten"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "食用量（g）"
           }
         }
       }
@@ -796,6 +864,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "语言"
+          }
+        }
+      }
+    },
+    "Latest meal %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Latest meal %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近一餐 %@"
           }
         }
       }
@@ -1000,6 +1085,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "打开设置"
+          }
+        }
+      }
+    },
+    "Per 100 g": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Per 100 g"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每 100 g"
+          }
+        }
+      }
+    },
+    "Per serving": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Per serving"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每份"
           }
         }
       }

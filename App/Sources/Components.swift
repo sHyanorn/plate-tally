@@ -45,7 +45,7 @@ struct KcalNumber: View {
     let role: TextRole
 
     var body: some View {
-        SignedNumber(sign: estimateSign(kcal), value: kcal, text: wholeKcal(kcal), spoken: kcalText(kcal), role: role)
+        SignedNumber(sign: estimateSign(kcal), value: kcal, text: wholeNumber(kcal), spoken: kcalText(kcal), role: role)
     }
 }
 
@@ -119,9 +119,16 @@ extension View {
     }
 }
 
-/// A fully round button 58 pt high, filled with ink. A press shrinks it to 97% with a short spring, or only
-/// fades it with Reduce Motion.
+/// A fully round button 58 pt high. The primary one is filled with ink, the quiet one is the surface with an
+/// outline. A press shrinks it to 97% with a short spring, or only fades it with Reduce Motion.
 struct PillButtonStyle: ButtonStyle {
+    enum Kind {
+        case primary
+        case quiet
+    }
+
+    var kind = Kind.primary
+
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -132,8 +139,11 @@ struct PillButtonStyle: ButtonStyle {
             .lineLimit(1)
             .padding(.horizontal, 22)
             .frame(minHeight: Metrics.pillHeight)
-            .foregroundStyle(Palette.onInk)
-            .background(Palette.ink, in: .capsule)
+            .foregroundStyle(kind == .primary ? Palette.onInk : Palette.ink)
+            .background(kind == .primary ? Palette.ink : Palette.surface, in: .capsule)
+            .overlay {
+                if kind == .quiet { Capsule().strokeBorder(Palette.line, lineWidth: 1.5) }
+            }
             .contentShape(.capsule)
             .opacity(isEnabled ? (pressed && reduceMotion ? 0.7 : 1) : 0.4)
             .scaleEffect(pressed && !reduceMotion ? 0.97 : 1)
