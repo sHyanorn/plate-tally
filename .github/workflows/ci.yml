@@ -37,3 +37,35 @@ jobs:
 
       - name: Dry run of the evaluation
         run: uv run --project eval python -m plate_eval run --dry-run
+
+  package:
+    name: Swift package on Linux
+    runs-on: ubuntu-24.04
+    env:
+      # Chosen to match the Swift of Xcode 26.6 on the macos-26 image (the macOS job prints it), so a
+      # pass here predicts the build of the app. The runner image has its own Swift, which can be
+      # newer and accept code that Xcode rejects.
+      SWIFT_VERSION: 6.3.3
+      SWIFT_SHA256: da8272a5fddccd65b1529ed0e52e04526e2eadd4237d58d6220efeb973c6cd19
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Swift
+        run: |
+          release="swift-$SWIFT_VERSION-RELEASE"
+          curl --fail --silent --show-error --location --output "$RUNNER_TEMP/swift.tar.gz" \
+            "https://download.swift.org/swift-$SWIFT_VERSION-release/ubuntu2404/$release/$release-ubuntu24.04.tar.gz"
+          echo "$SWIFT_SHA256  $RUNNER_TEMP/swift.tar.gz" | sha256sum -c -
+          mkdir "$RUNNER_TEMP/swift"
+          tar -xzf "$RUNNER_TEMP/swift.tar.gz" -C "$RUNNER_TEMP/swift" --strip-components=1
+          echo "$RUNNER_TEMP/swift/usr/bin" >> "$GITHUB_PATH"
+
+      - name: Show Swift
+        run: swift --version
+
+      - name: Build
+        run: swift build
+
+      - name: Test
+        run: swift test

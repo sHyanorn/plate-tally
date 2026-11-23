@@ -59,6 +59,7 @@ jobs:
         run: |
           xcodebuild -version
           xcodebuild -showsdks
+          swift --version
 
       - name: Build for the simulator
         run: |
