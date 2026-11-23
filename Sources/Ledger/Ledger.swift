@@ -40,7 +40,7 @@ public struct Ledger: Equatable, Sendable {
     }
 }
 
-extension Ledger {
+extension Ledger: StoredValue {
     private struct File: Codable {
         var version: Int
         var meals: [Meal]

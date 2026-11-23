@@ -84,7 +84,7 @@ public struct CallLog: Equatable, Sendable {
     }
 }
 
-extension CallLog {
+extension CallLog: StoredValue {
     private struct File: Codable {
         var version: Int
         var calls: [CallRecord]

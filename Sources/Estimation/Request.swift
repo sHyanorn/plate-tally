@@ -7,6 +7,14 @@ public struct HTTPRequest: Equatable, Sendable {
     public let method: String
     public let headers: [String: String]
     public let body: Data
+
+    /// Public so that the app's tests can build the request their transport is given.
+    public init(url: URL, method: String, headers: [String: String], body: Data) {
+        self.url = url
+        self.method = method
+        self.headers = headers
+        self.body = body
+    }
 }
 
 public enum Estimation {

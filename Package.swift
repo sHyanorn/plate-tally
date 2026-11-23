@@ -10,6 +10,7 @@ let package = Package(
         .library(name: "Energy", targets: ["Energy"]),
         .library(name: "Estimation", targets: ["Estimation"]),
         .library(name: "Ledger", targets: ["Ledger"]),
+        .library(name: "Tally", targets: ["Tally"]),
     ],
     targets: [
         .target(name: "Core"),
@@ -17,11 +18,13 @@ let package = Package(
         .target(name: "Energy", dependencies: ["Core"]),
         .target(name: "Estimation", dependencies: ["Core"]),
         .target(name: "Ledger", dependencies: ["Core"]),
+        .target(name: "Tally", dependencies: ["Core", "Cost", "Energy", "Estimation", "Ledger"]),
         .testTarget(name: "CoreTests", dependencies: ["Core"]),
         .testTarget(name: "CostTests", dependencies: ["Cost", "Core", "Estimation"]),
         .testTarget(name: "EnergyTests", dependencies: ["Energy"]),
         .testTarget(name: "EstimationTests", dependencies: ["Estimation", "Core"]),
         .testTarget(name: "LedgerTests", dependencies: ["Ledger", "Core"]),
+        .testTarget(name: "TallyTests", dependencies: ["Tally", "Core", "Cost", "Energy", "Estimation", "Ledger"]),
     ],
     swiftLanguageModes: [.v6]
 )
