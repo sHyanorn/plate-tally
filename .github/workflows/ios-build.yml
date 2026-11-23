@@ -43,6 +43,30 @@ jobs:
           fi
           echo "DEVELOPER_DIR=$XCODE_APP/Contents/Developer" >> "$GITHUB_ENV"
 
+      # The simulator boots while the project is generated and built. The test step waits for it.
+      - name: Boot a simulator
+        run: |
+          udid=$(python3 - <<'PY'
+          import json, subprocess, sys
+          data = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "--json"]))
+          phones = sorted(
+              (device["name"], device["udid"])
+              for runtime, devices in data["devices"].items()
+              if "iOS-26" in runtime
+              for device in devices
+              if device["name"].startswith("iPhone")
+          )
+          if not phones:
+              seen = sorted(runtime for runtime, devices in data["devices"].items() if devices)
+              sys.exit("error: expected an iPhone simulator on iOS 26, saw runtimes: " + ", ".join(seen))
+          chosen = next((phone for phone in phones if phone[0] == "iPhone 17"), phones[0])
+          print("simulator: %s %s" % chosen, file=sys.stderr)
+          print(chosen[1])
+          PY
+          )
+          echo "UDID=$udid" >> "$GITHUB_ENV"
+          xcrun simctl boot "$udid"
+
       - name: Install XcodeGen
         run: |
           curl --fail --silent --show-error --location \
@@ -65,14 +89,15 @@ jobs:
           xcodebuild -list -project App/PlateTally.xcodeproj
           xcrun simctl list devices available
 
-      - name: Build for the simulator
+      # The test step runs this build as it is, so the app and its tests compile once.
+      - name: Build the app and its tests for the simulator
         run: |
-          xcodebuild build \
+          xcodebuild build-for-testing \
             -project App/PlateTally.xcodeproj \
             -scheme PlateTally \
             -configuration Debug \
-            -destination 'generic/platform=iOS Simulator' \
-            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
+            -destination "id=$UDID" \
+            -derivedDataPath "$RUNNER_TEMP/dd" \
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER"
 
       - name: Archive for a device without signing
@@ -113,42 +138,24 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-      - name: Pick a simulator
-        run: |
-          udid=$(python3 - <<'PY'
-          import json, subprocess, sys
-          data = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "--json"]))
-          phones = sorted(
-              (device["name"], device["udid"])
-              for runtime, devices in data["devices"].items()
-              if "iOS-26" in runtime
-              for device in devices
-              if device["name"].startswith("iPhone")
-          )
-          if not phones:
-              seen = sorted(runtime for runtime, devices in data["devices"].items() if devices)
-              sys.exit("error: expected an iPhone simulator on iOS 26, saw runtimes: " + ", ".join(seen))
-          chosen = next((phone for phone in phones if phone[0] == "iPhone 17"), phones[0])
-          print("simulator: %s %s" % chosen, file=sys.stderr)
-          print(chosen[1])
-          PY
-          )
-          echo "UDID=$udid" >> "$GITHUB_ENV"
-          xcrun simctl bootstatus "$udid" -b
-
       # The unit tests and the UI tests run the app on a fresh folder, a fixed clock and a canned
       # reply (App/Sources/UITestHarness.swift), so no test touches the network or a key.
       - name: Test the app on the simulator
         run: |
+          xcrun simctl bootstatus "$UDID" -b
           mkdir "$RUNNER_TEMP/screenshots"
-          TEST_RUNNER_SCREENSHOT_DIR="$RUNNER_TEMP/screenshots" xcodebuild test \
+          date -u
+          status=0
+          TEST_RUNNER_SCREENSHOT_DIR="$RUNNER_TEMP/screenshots" xcodebuild test-without-building \
             -project App/PlateTally.xcodeproj \
             -scheme PlateTally \
-            -configuration Debug \
             -destination "id=$UDID" \
+            -derivedDataPath "$RUNNER_TEMP/dd" \
             -parallel-testing-enabled NO \
-            -resultBundlePath "$RUNNER_TEMP/app-tests.xcresult" \
-            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" 2>&1 | tee "$RUNNER_TEMP/app-tests.log"
+            -resultBundlePath "$RUNNER_TEMP/app-tests.xcresult" 2>&1 \
+            | tee "$RUNNER_TEMP/app-tests.log" || status=$?
+          date -u
+          exit "$status"
 
       # The package tests ran on Linux already. This run checks them against the Foundation of the
       # platform the app ships on.
@@ -175,6 +182,15 @@ jobs:
         with:
           name: test-logs
           path: ${{ runner.temp }}/*.log
+          retention-days: 3
+          if-no-files-found: warn
+
+      - name: Upload the result bundle of the app tests
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: app-tests-xcresult
+          path: ${{ runner.temp }}/app-tests.xcresult
           retention-days: 3
           if-no-files-found: warn
 
