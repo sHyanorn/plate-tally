@@ -4,11 +4,31 @@ name: PlateTally
 options:
   deploymentTarget:
     iOS: "26.0"
+  # The screens are in Chinese and English (D015). The catalogs in Sources hold both.
+  developmentLanguage: en
+  knownRegions: [en, zh-Hans]
+# The logic lives in the Swift package at the repository root.
+packages:
+  PlateTallyKit:
+    path: ..
 targets:
   PlateTally:
     type: application
     platform: iOS
     sources: [Sources]
+    dependencies:
+      - package: PlateTallyKit
+        product: Core
+      - package: PlateTallyKit
+        product: Cost
+      - package: PlateTallyKit
+        product: Energy
+      - package: PlateTallyKit
+        product: Estimation
+      - package: PlateTallyKit
+        product: Ledger
+      - package: PlateTallyKit
+        product: Tally
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: io.github.shyanorn.plate-tally
@@ -29,9 +49,41 @@ targets:
         # at every upload.
         ITSAppUsesNonExemptEncryption: false
         UILaunchScreen: {}
+        CFBundleLocalizations: [en, zh-Hans]
+        # The camera asks for permission with this text. The photo library needs none.
+        NSCameraUsageDescription: Takes a photo of a meal.
+        # One orientation keeps the layouts simple and the screenshots comparable.
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+  # The unit tests run inside the app, so they see its code and the package modules it links.
+  PlateTallyTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [UnitTests]
+    dependencies:
+      - target: PlateTally
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.shyanorn.plate-tally.unit-tests
+        SWIFT_VERSION: "6.0"
+        GENERATE_INFOPLIST_FILE: YES
+  PlateTallyUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies:
+      - target: PlateTally
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.shyanorn.plate-tally.ui-tests
+        SWIFT_VERSION: "6.0"
+        GENERATE_INFOPLIST_FILE: YES
 # XcodeGen writes a scheme only for a declared one, and the CI commands name it.
 schemes:
   PlateTally:
     build:
       targets:
         PlateTally: all
+    test:
+      targets:
+        - PlateTallyTests
+        - PlateTallyUITests
