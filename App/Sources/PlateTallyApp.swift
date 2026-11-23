@@ -1,30 +1,44 @@
+import Core
 import SwiftUI
+import Tally
 
 @main
 struct PlateTallyApp: App {
+    private let session: Result<Session, Problem> = AppEnvironment.live()
+
     var body: some Scene {
         WindowGroup {
-            BuildInfoView()
+            switch session {
+            case .success(let session):
+                RootView(session: session)
+            case .failure(let problem):
+                StartupFailureView(problem: problem)
+                    .environment(\.locale, Language.chinese.locale)
+            }
         }
     }
 }
 
-struct BuildInfoView: View {
+/// The screens in the language of the settings. A change of the setting shows at once, because the
+/// locale of the environment is read from the model.
+private struct RootView: View {
+    let session: Session
+
     var body: some View {
-        VStack(spacing: 8) {
-            Text(infoValue("CFBundleDisplayName"))
-                .font(.largeTitle)
-            Text("Version \(infoValue("CFBundleShortVersionString")) (\(infoValue("CFBundleVersion")))")
-                .foregroundStyle(.secondary)
-        }
+        DayView(model: session.model, keys: session.keys)
+            .environment(\.locale, session.model.settings.language.locale)
     }
 }
 
-// The screen exists to show what CI built, so a missing key stops the app.
-private func infoValue(_ key: String) -> String {
-    let value = Bundle.main.object(forInfoDictionaryKey: key)
-    guard let text = value as? String else {
-        fatalError("Info.plist key \(key): expected a string, saw \(String(describing: value))")
+/// A file of the app is there and cannot be read. Nothing is written, so the file stays as it is.
+struct StartupFailureView: View {
+    let problem: Problem
+
+    var body: some View {
+        ContentUnavailableView {
+            Label("Cannot start", systemImage: "exclamationmark.triangle")
+        } description: {
+            Text(problem.message)
+        }
     }
-    return text
 }
