@@ -23,7 +23,7 @@ Which model the app calls was decided from measured accuracy and cost (D009). Th
 
 ## Checks
 
-Python 3 and uv are required. No check calls a paid API. The last command below prints the planned requests and the estimated cost, with no network call and no key.
+Python 3 and uv are required, and Swift 6.3.3 from swift.org for the two Swift commands, which need no network. No check calls a paid API. The last command below prints the planned requests and the estimated cost, with no network call and no key.
 
 ```
 python3 scripts/check_strings.py
@@ -31,10 +31,12 @@ python3 -m unittest discover -s scripts -p "test_*.py"
 uv run --project eval ruff check eval scripts
 uv run --project eval ruff format --check eval scripts
 uv run --project eval pytest eval/tests
+swift build
+swift test
 uv run --project eval python -m plate_eval run --dry-run
 ```
 
-The app is not built by these commands. It builds in CI on a hosted macOS runner.
+These commands build the Swift package, not the app. The app builds in CI on a hosted macOS runner.
 
 ## Limits
 

@@ -38,7 +38,7 @@ The half of G2 that needs no paid account comes first, so the build route is kno
 
 No UI code. Each module has tests that run on Linux without network. M1.4 (FoodData) and M1.7 (table generator) moved to M4 by D011.
 
-- [ ] M1.1 Core: food item, meal, units, errors.
+- [x] M1.1 Core: food item, meal, limits, dates, errors.
 - [ ] M1.2 Energy: Mifflin-St Jeor, activity factors, the test vector in SPEC.md.
 - [ ] M1.3 Estimation: request building, response parsing and validation (R5, R6).
 - [ ] M1.5 Ledger: meal records, daily totals, edit and recompute.

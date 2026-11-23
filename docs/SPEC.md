@@ -110,11 +110,11 @@ Source: vendor pricing page, read 2026-11-22. The prices live in one table in th
 
 ## Architecture
 
-Logic lives in a Swift package with no UI code. A thin SwiftUI app target sits on top (M2).
+Logic lives in a Swift package at the repository root (Package.swift, Sources/, Tests/) with no UI code. A thin SwiftUI app target sits on top (M2).
 
 | Module     | Content                                                                   |
 |------------|---------------------------------------------------------------------------|
-| Core       | Shared types: food item, meal, units, errors. No dependencies.            |
+| Core       | Shared types: food item, meal, limits, dates, errors. No dependencies.    |
 | Energy     | Mifflin-St Jeor, activity factors.                                        |
 | Estimation | Request building, response parsing and validation (R5, R6).               |
 | Ledger     | Meal records, daily totals, edit and recompute.                           |
