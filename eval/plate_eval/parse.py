@@ -102,7 +102,7 @@ def classify(record: dict) -> Outcome:
         return Outcome("error", record["error"]["type"], None)
     response = record["response"]
     # The run requests no fallback, so another model's answer is not a measurement of this one.
-    # A response may carry a dated form of the same id (claude-haiku-5-5-20261001).
+    # A response may carry the same id followed by a hyphen and eight digits.
     if re.sub(r"-\d{8}$", "", response["model"]) != record["model"]:
         return Outcome("substituted", "model_mismatch", None)
     if response["stop_reason"] == "refusal":
