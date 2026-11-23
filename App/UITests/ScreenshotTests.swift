@@ -63,8 +63,8 @@ final class ScreenshotTests: XCTestCase {
             XCTAssertTrue(grams.waitForExistence(timeout: 5))
             snap("item-edit", look)
             replaceText(of: grams, with: "300")
-            XCTAssertEqual(app.textFields["item-kcal"].value as? String, "390")
             snap("item-edit-scaled", look)
+            XCTAssertEqual(app.textFields["item-kcal"].value as? String, "390")
             app.navigationBars["Item"].buttons["Save"].tap()
             XCTAssertTrue(app.navigationBars["New meal"].waitForExistence(timeout: 5))
             XCTAssertEqual(app.staticTexts["meal-total"].label, "≈ 555 kcal")
@@ -219,15 +219,16 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
-    /// Replaces the text of a field. A tap on the right edge gives a right-aligned field no keyboard focus,
-    /// and a tap elsewhere puts the caret at its start. Three taps select the line, and the arrow and delete
-    /// keys clear what the selection missed, wherever the caret is.
+    /// Replaces the text of a field that has some. A tap puts the caret where it lands, and the delete key
+    /// works behind the caret only. The text is right-aligned, so a tap in the middle lands before it and a
+    /// tap at the right edge lands behind it. The edge does not take the tap that gives the field its focus.
     private func replaceText(of field: XCUIElement, with text: String) {
-        field.tap(withNumberOfTaps: 3, numberOfTouches: 1)
-        let count = (field.value as? String ?? "").count
-        field.typeText(
-            String(repeating: XCUIKeyboardKey.rightArrow.rawValue, count: count)
-                + String(repeating: XCUIKeyboardKey.delete.rawValue, count: count) + text)
+        for dx in [0.5, 0.995] where !(field.value as? String ?? "").isEmpty {
+            field.coordinate(withNormalizedOffset: CGVector(dx: dx, dy: 0.5)).tap()
+            let count = (field.value as? String ?? "").count
+            field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: count))
+        }
+        field.typeText(text)
     }
 
     /// True when some static text of the screen holds the text.
