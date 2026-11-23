@@ -32,6 +32,8 @@ private struct RootView: View {
     var body: some View {
         DayView(model: session.model, keys: session.keys)
             .environment(\.locale, session.model.settings.language.locale)
+            // Controls stay neutral: moss belongs to the tags alone (D017).
+            .tint(Palette.ink)
             #if DEBUG
             .preferredColorScheme(UITestHarness.colorScheme)
             #endif

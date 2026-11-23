@@ -12,7 +12,7 @@ final class ScreenshotTests: XCTestCase {
 
     func testTheEmptyDayAndTheRefusalWithoutAKey() {
         eachAppearance { app, look in
-            XCTAssertTrue(app.navigationBars["Today"].waitForExistence(timeout: 10))
+            XCTAssertTrue(app.staticTexts["day-title"].waitForExistence(timeout: 10))
             XCTAssertEqual(app.staticTexts["intake"].label, "0 kcal")
             XCTAssertTrue(app.buttons["add-profile"].exists)
             snap("day-empty", look)
@@ -29,11 +29,18 @@ final class ScreenshotTests: XCTestCase {
 
     func testTheDayWithMeals() {
         eachAppearance(["-ui-key", "-ui-profile", "-ui-seed"]) { app, look in
-            XCTAssertTrue(app.navigationBars["Today"].waitForExistence(timeout: 10))
+            XCTAssertTrue(app.staticTexts["day-title"].waitForExistence(timeout: 10))
             // 160 + 105 + 195 + 165 + 31 kcal, and 2555.5625 kcal of expenditure for the test vector.
             XCTAssertEqual(app.staticTexts["intake"].label, "≈ 656 kcal")
             XCTAssertEqual(app.staticTexts["expenditure"].label, "≈ 2,556 kcal")
             snap("day-meals", look)
+        }
+        // At an accessibility text size the tag and the expenditure stack.
+        let largest = ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXL"]
+        eachAppearance(["-ui-key", "-ui-profile", "-ui-seed"] + largest, looks: ["light"]) { app, look in
+            XCTAssertTrue(app.staticTexts["day-title"].waitForExistence(timeout: 10))
+            XCTAssertEqual(app.staticTexts["intake"].label, "≈ 656 kcal")
+            snap("day-meals-ax", look)
         }
     }
 
@@ -41,7 +48,7 @@ final class ScreenshotTests: XCTestCase {
 
     func testAnalyzeEditSaveAndDelete() {
         eachAppearance(["-ui-key", "-ui-profile"]) { app, look in
-            XCTAssertTrue(app.navigationBars["Today"].waitForExistence(timeout: 10))
+            XCTAssertTrue(app.staticTexts["day-title"].waitForExistence(timeout: 10))
             XCTAssertEqual(app.staticTexts["expenditure"].label, "≈ 2,556 kcal")
             snap("day-profile", look)
 
@@ -72,7 +79,7 @@ final class ScreenshotTests: XCTestCase {
             XCTAssertEqual(app.staticTexts["meal-total"].label, "≈ 555 kcal")
 
             app.navigationBars["New meal"].buttons["Save"].tap()
-            XCTAssertTrue(app.navigationBars["Today"].waitForExistence(timeout: 10))
+            XCTAssertTrue(app.staticTexts["day-title"].waitForExistence(timeout: 10))
             XCTAssertEqual(app.staticTexts["intake"].label, "≈ 555 kcal")
 
             // A saved meal opens with its items and is deleted after a confirmation.
@@ -83,7 +90,7 @@ final class ScreenshotTests: XCTestCase {
             XCTAssertTrue(app.buttons["Delete"].waitForExistence(timeout: 5))
             snap("meal-delete-confirm", look)
             app.buttons["Delete"].tap()
-            XCTAssertTrue(app.navigationBars["Today"].waitForExistence(timeout: 5))
+            XCTAssertTrue(app.staticTexts["day-title"].waitForExistence(timeout: 5))
             XCTAssertEqual(app.staticTexts["intake"].label, "0 kcal")
         }
     }
@@ -97,7 +104,7 @@ final class ScreenshotTests: XCTestCase {
             XCTAssertTrue(app.staticTexts["Billed $0.0035"].exists)
             snap("analysis-failed", look)
             app.buttons["Close"].tap()
-            XCTAssertTrue(app.navigationBars["Today"].waitForExistence(timeout: 5))
+            XCTAssertTrue(app.staticTexts["day-title"].waitForExistence(timeout: 5))
         }
     }
 
@@ -120,7 +127,7 @@ final class ScreenshotTests: XCTestCase {
             app.buttons["Choose photo"].tap()
             XCTAssertTrue(app.navigationBars["New meal"].waitForExistence(timeout: 10))
             app.navigationBars["New meal"].buttons["Save"].tap()
-            XCTAssertTrue(app.navigationBars["Today"].waitForExistence(timeout: 10))
+            XCTAssertTrue(app.staticTexts["day-title"].waitForExistence(timeout: 10))
 
             app.buttons["add-meal"].tap()
             let alert = app.alerts["Daily limit reached"]
@@ -150,7 +157,7 @@ final class ScreenshotTests: XCTestCase {
             snap("settings-filled", look)
 
             app.buttons["Done"].tap()
-            XCTAssertTrue(app.navigationBars["Today"].waitForExistence(timeout: 5))
+            XCTAssertTrue(app.staticTexts["day-title"].waitForExistence(timeout: 5))
             XCTAssertEqual(app.staticTexts["expenditure"].label, "≈ 2,556 kcal")
         }
     }
@@ -160,7 +167,7 @@ final class ScreenshotTests: XCTestCase {
     func testTheDayAndAMealInChinese() {
         eachAppearance(["-ui-key", "-ui-profile", "-ui-seed", "-ui-language", "zh"]) { app, look in
             XCTAssertTrue(app.buttons["add-meal"].waitForExistence(timeout: 10))
-            XCTAssertFalse(app.navigationBars["Today"].exists)
+            XCTAssertNotEqual(app.staticTexts["day-title"].label, "Today")
             XCTAssertNotEqual(app.buttons["add-meal"].label, "Add meal")
             XCTAssertEqual(app.staticTexts["intake"].label, "≈ 656 kcal")
             snap("day-meals", look + "-zh")
@@ -204,14 +211,21 @@ final class ScreenshotTests: XCTestCase {
             snap("settings-switched", look)
             XCTAssertEqual(app.secureTextFields["api-key"].placeholderValue, "Anthropic API key")
             XCTAssertTrue(app.navigationBars["Settings"].exists)
+
+            // The day draws its own title, and it follows the switch too.
+            app.buttons["Done"].tap()
+            XCTAssertTrue(app.staticTexts["day-title"].waitForExistence(timeout: 5))
+            XCTAssertEqual(app.staticTexts["day-title"].label, "Today")
         }
     }
 
     // MARK: Helpers
 
-    /// Runs the check once with the light look and once with the dark look, on a fresh launch each.
-    private func eachAppearance(_ options: [String] = [], _ check: (XCUIApplication, String) -> Void) {
-        for look in ["light", "dark"] {
+    /// Runs the check once with each look, light and dark unless named, on a fresh launch each.
+    private func eachAppearance(
+        _ options: [String] = [], looks: [String] = ["light", "dark"], _ check: (XCUIApplication, String) -> Void
+    ) {
+        for look in looks {
             let app = XCUIApplication()
             app.launchArguments = ["-ui-test", "-ui-appearance", look] + options
             app.launch()

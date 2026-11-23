@@ -10,7 +10,9 @@ struct DayView: View {
 
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.locale) private var locale
+    @Environment(\.dynamicTypeSize) private var typeSize
     @State private var selected: Date
+    @State private var path: [UUID] = []
     @State private var showSettings = false
     @State private var choosingSource = false
     @State private var showCamera = false
@@ -32,38 +34,42 @@ struct DayView: View {
     private var meals: [Meal] { model.meals(on: day) }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             List {
-                Section {
-                    HStack(alignment: .top) {
-                        metric("Intake", value: kcalText(model.intake(on: day)), id: "intake")
-                        expenditure
-                    }
-                    .padding(.vertical, 4)
+                title
+                    .textRole(.pageTitle)
+                    .lineLimit(typeSize.isAccessibilitySize ? 2 : 1)
+                    .minimumScaleFactor(0.6)
+                    .accessibilityAddTraits(.isHeader)
+                    .accessibilityIdentifier("day-title")
+                    .plainListRow()
+                EnergyHero(intake: model.intake(on: day), expenditure: model.expenditure) { showSettings = true }
+                    .plainListRow()
+                if meals.isEmpty {
+                    EmptyDay().plainListRow()
                 }
-                Section {
-                    if meals.isEmpty {
-                        ContentUnavailableView("No meals", systemImage: "fork.knife")
-                            .listRowBackground(Color.clear)
+                ForEach(meals, id: \.id) { meal in
+                    Button {
+                        path.append(meal.id)
+                    } label: {
+                        MealCard(
+                            meal: meal,
+                            time: model.instant(of: meal.at)
+                                .formatted(Date.FormatStyle(date: .omitted, time: .shortened).locale(locale)))
                     }
-                    ForEach(meals, id: \.id) { meal in
-                        NavigationLink(value: meal.id) {
-                            MealRow(
-                                meal: meal,
-                                time: model.instant(of: meal.at)
-                                    .formatted(Date.FormatStyle(date: .omitted, time: .shortened).locale(locale)))
-                        }
-                        .accessibilityIdentifier("meal-row")
-                        .swipeActions(edge: .trailing) {
-                            Button("Delete", role: .destructive) { deleting = meal }
-                        }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("meal-row")
+                    .cardListRow()
+                    .swipeActions(edge: .trailing) {
+                        Button("Delete", role: .destructive) { deleting = meal }
                     }
                 }
             }
-            .navigationTitle(
-                day == model.today
-                    ? Text("Today")
-                    : Text(selected.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(locale))))
+            .listStyle(.plain)
+            .listRowSpacing(Metrics.gap)
+            .scrollContentBackground(.hidden)
+            .background(Palette.canvas)
+            .foregroundStyle(Palette.ink)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Settings", systemImage: "gearshape") { showSettings = true }
@@ -74,16 +80,14 @@ struct DayView: View {
                 }
             }
             .navigationDestination(for: UUID.self) { StoredMealView(model: model, id: $0) }
-            .safeAreaInset(edge: .bottom) {
+            .safeAreaBar(edge: .bottom) {
                 Button(action: startCapture) {
                     Label("Add meal", systemImage: "camera").frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .padding(.horizontal)
-                .padding(.vertical, 8)
-                .background(.bar)
+                .buttonStyle(PillButtonStyle())
                 .accessibilityIdentifier("add-meal")
+                .padding(.horizontal, Metrics.margin)
+                .padding(.vertical, 8)
             }
         }
         .sheet(isPresented: $showSettings) { SettingsView(model: model, keys: keys) }
@@ -152,33 +156,9 @@ struct DayView: View {
         }
     }
 
-    @ViewBuilder
-    private var expenditure: some View {
-        if let kcal = model.expenditure {
-            metric("Expenditure", value: kcalText(kcal), id: "expenditure")
-        } else {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Expenditure").font(.subheadline).foregroundStyle(.secondary)
-                Button("Add profile") { showSettings = true }
-                    .buttonStyle(.borderless)
-                    .font(.title3)
-                    .accessibilityIdentifier("add-profile")
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    private func metric(_ title: LocalizedStringKey, value: String, id: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title).font(.subheadline).foregroundStyle(.secondary)
-            Text(value)
-                .font(.title2.weight(.semibold))
-                .monospacedDigit()
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-                .accessibilityIdentifier(id)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+    private var title: Text {
+        day == model.today
+            ? Text("Today") : Text(selected.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(locale)))
     }
 
     /// The limit and the key are checked before the photo is taken, so no photo is wasted (R19, R20).
@@ -235,18 +215,96 @@ struct DayView: View {
     }
 }
 
-private struct MealRow: View {
+/// The intake as a moss price tag beside the outlined expenditure. They stand side by side and nothing compares
+/// them (R15, D004). At accessibility text sizes the two stack.
+private struct EnergyHero: View {
+    let intake: Double
+    let expenditure: Double?
+    let addProfile: () -> Void
+
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @ScaledMetric(relativeTo: .title) private var sideWidth: CGFloat = 136
+    /// The height of a block inside its 18 pt padding, 132 pt in all.
+    @ScaledMetric(relativeTo: .largeTitle) private var innerHeight: CGFloat = Metrics.tagHeight - 36
+
+    var body: some View {
+        let stacked = typeSize.isAccessibilitySize
+        let layout = stacked ? AnyLayout(VStackLayout(spacing: 10)) : AnyLayout(HStackLayout(spacing: 10))
+        layout {
+            EnergyTag(label: "Intake", kcal: intake, numberID: "intake", minHeight: innerHeight)
+            VStack(alignment: .leading) {
+                HStack(spacing: 4) {
+                    Text("Expenditure").textRole(.label).lineLimit(1).minimumScaleFactor(0.6)
+                    if expenditure != nil {
+                        Spacer(minLength: 4)
+                        Text(verbatim: "kcal").textRole(.unit).accessibilityHidden(true)
+                    }
+                }
+                Spacer(minLength: 8)
+                if let expenditure {
+                    KcalNumber(kcal: expenditure, role: .sideNumber).accessibilityIdentifier("expenditure")
+                } else {
+                    Button(action: addProfile) {
+                        Text("Add profile")
+                            .underline()
+                            .lineLimit(2)
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .bottomLeading)
+                            .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+                    .textRole(.label)
+                    .accessibilityIdentifier("add-profile")
+                }
+            }
+            .frame(width: stacked ? nil : sideWidth - 28)
+            .frame(
+                maxWidth: stacked ? CGFloat.infinity : nil, minHeight: innerHeight, maxHeight: .infinity,
+                alignment: .leading)
+            .padding(.vertical, 18)
+            .padding(.horizontal, 14)
+            .background(Palette.surface, in: .rect(cornerRadius: Metrics.tagRadius))
+            .overlay { RoundedRectangle(cornerRadius: Metrics.tagRadius).strokeBorder(Palette.line, lineWidth: 1.5) }
+        }
+        .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+private struct MealCard: View {
     let meal: Meal
     let time: String
 
     var body: some View {
-        HStack {
+        HStack(spacing: 14) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(time).font(.subheadline).foregroundStyle(.secondary)
-                Text(meal.items.map(\.name).joined(separator: ", ")).lineLimit(1)
+                Text(time).textRole(.caption).foregroundStyle(Palette.ink2)
+                Text(meal.items.map(\.name).joined(separator: ", ")).textRole(.name).lineLimit(1)
             }
-            Spacer()
-            Text(kcalText(meal.totalKcal)).monospacedDigit()
+            Spacer(minLength: 8)
+            VStack(alignment: .trailing, spacing: 4) {
+                KcalNumber(kcal: meal.totalKcal, role: .cardNumber)
+                Text(verbatim: "kcal").textRole(.caption).foregroundStyle(Palette.ink2).accessibilityHidden(true)
+            }
         }
+        .frame(minHeight: 56)
+        .cardPadding()
+        .contentShape(.rect)
+    }
+}
+
+/// A day without meals: an outlined card that names the state. The button below says what to do.
+private struct EmptyDay: View {
+    @ScaledMetric(relativeTo: .title) private var circle: CGFloat = 64
+
+    var body: some View {
+        VStack(spacing: 14) {
+            Image(systemName: "fork.knife")
+                .font(.system(.title, design: .rounded, weight: .semibold))
+                .frame(width: circle, height: circle)
+                .background(Palette.surface2, in: .circle)
+                .accessibilityHidden(true)
+            Text("No meals").textRole(.name).foregroundStyle(Palette.ink2)
+        }
+        .frame(maxWidth: .infinity, minHeight: 220)
+        .overlay { RoundedRectangle(cornerRadius: Metrics.cardRadius).strokeBorder(Palette.line, lineWidth: 2) }
     }
 }
