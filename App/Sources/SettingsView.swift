@@ -107,6 +107,9 @@ struct SettingsView: View {
             }
             .problemAlert("Could not save", $problem)
         }
+        // A new locale does not always reach the title of the bar, which kept the old language while the rows
+        // changed. A stack of its own for each language resolves the title in the new one.
+        .id(model.settings.language)
     }
 
     private var keySection: some View {
