@@ -95,7 +95,10 @@ struct ConverterView: View {
                 .accessibilityIdentifier("converter-add")
             }
             .padding(.horizontal, Metrics.margin)
-            .padding(.vertical, 8)
+            // 18 pt above: with the keyboard up per 100 g, the edge of the bar then falls in the gap below
+            // the kcal field and does not cut across the row after it.
+            .padding(.top, 18)
+            .padding(.bottom, 8)
             .background(Palette.canvas)
         }
         .onChange(of: form) { problem = nil }
