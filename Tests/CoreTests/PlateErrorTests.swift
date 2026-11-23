@@ -37,4 +37,11 @@ private struct SampleError: PlateError {
         #expect(Limits.kcal.contains(0) && Limits.kcal.contains(5000))
         #expect(!Limits.kcal.contains(-0.001) && !Limits.kcal.contains(5000.001))
     }
+
+    /// Unicode scalars after surrounding whitespace is removed: one family emoji is five.
+    @Test(arguments: [("rice", 4), ("  rice \n", 4), ("", 0), (" \t\n", 0), ("caf\u{E9}", 4), ("e\u{301}", 2),
+        ("\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}", 5), ("\u{0}", 1), ("a b", 3)])
+    func nameLengthCountsScalarsAfterTrimming(name: String, length: Int) {
+        #expect(Limits.nameLength(of: name) == length)
+    }
 }

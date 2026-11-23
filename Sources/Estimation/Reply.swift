@@ -87,8 +87,7 @@ extension Estimation {
         guard case .string(let name) = nameValue else {
             throw .badValue("\(place).name", expected: nameRule, saw: kind(of: nameValue))
         }
-        // Characters are Unicode scalars, as in the evaluation, so one emoji with joiners counts as several.
-        let length = name.trimmingCharacters(in: .whitespacesAndNewlines).unicodeScalars.count
+        let length = Limits.nameLength(of: name)
         guard Limits.nameLength.contains(length) else {
             throw .badValue("\(place).name", expected: nameRule, saw: "a string of \(length) characters")
         }
