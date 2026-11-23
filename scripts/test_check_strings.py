@@ -64,7 +64,7 @@ class FileRules(TempTree):
         code, out, err = self.check()
         self.assertEqual(code, 0)
         self.assertEqual(err, "")
-        self.assertEqual(out.strip(), "files 2, findings 0, allowed 0")
+        self.assertEqual(out.strip(), "files 2, findings 0, allowed 0, exempt 0")
 
     def test_each_rule_triggers_with_path_line_rule_excerpt(self) -> None:
         cases = {
@@ -183,6 +183,48 @@ class Allowlist(TempTree):
         code, _, err = self.check()
         self.assertEqual(code, 2)
         self.assertIn("string_allowlist.txt:1: expected path<TAB>line text", err)
+
+
+class Exempt(TempTree):
+    def test_the_list_names_only_the_recorded_replies(self) -> None:
+        self.assertEqual(check_strings.EXEMPT_DIRS, ("eval/raw/",))
+
+    def test_hits_in_an_exempt_directory_are_not_findings(self) -> None:
+        self.write("eval/raw/m/p1/d.json", f"x {VENDOR}\nb {EM_DASH}\n")
+        code, out, _ = self.check()
+        self.assertEqual(code, 0)
+        self.assertEqual(out.strip(), "files 1, findings 0, allowed 0, exempt 1")
+
+    def test_exempt_files_are_counted_apart_from_the_others(self) -> None:
+        self.write("eval/raw/a.json", "{}\n")
+        self.write("eval/raw/m/b.json", "{}\n")
+        self.write("c.txt", "plain\n")
+        _, out, _ = self.check()
+        self.assertEqual(out.strip(), "files 3, findings 0, allowed 0, exempt 2")
+
+    def test_the_same_text_elsewhere_is_still_a_finding(self) -> None:
+        # Only the path decides: a sibling, a shared prefix or a deeper copy is no match.
+        elsewhere = ("eval/x.json", "eval/raw_old/x.json", "raw/x.json")
+        elsewhere += ("sub/eval/raw/x.json",)
+        for name in elsewhere:
+            self.write(name, f"x {VENDOR}\n")
+        code, out, _ = self.check()
+        self.assertEqual(code, 1)
+        self.assertEqual(flagged_files(out), sorted(elsewhere))
+        self.assertIn("exempt 0", out)
+
+    def test_a_key_in_an_exempt_directory_is_a_finding(self) -> None:
+        self.write("eval/raw/m/p1/d.json", f"token {KEY}\n")
+        code, out, _ = self.check()
+        self.assertEqual(code, 1)
+        self.assertIn("eval/raw/m/p1/d.json:1: api-key: ", out)
+        self.assertIn("exempt 1", out)
+
+    def test_a_loose_entry_is_refused(self) -> None:
+        loose = ("", "/", "eval/raw", "/eval/raw/", "../raw/", "eval/*/", "eval/ra[w]/")
+        for entry in loose:
+            with self.subTest(entry=entry), self.assertRaises(check_strings.CheckError):
+                check_strings.scan_files(self.root, (entry,))
 
 
 class FileList(TempTree):

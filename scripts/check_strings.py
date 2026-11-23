@@ -21,6 +21,8 @@ from pathlib import Path
 from typing import NamedTuple
 
 ALLOWLIST = "scripts/string_allowlist.txt"
+# Recorded model replies are data and stay as received (protocol, What is published).
+EXEMPT_DIRS = ("eval/raw/",)
 SKIPPED_DIRS = frozenset(
     {
         ".git",
@@ -52,6 +54,8 @@ RULES = (
     rule("dash", r"[\U00002013\U00002014]"),
     API_KEY,
 )
+# A key must never reach a record, so exempt files are still scanned for it.
+EXEMPT_RULES = (API_KEY,)
 
 
 class CheckError(Exception):
@@ -78,13 +82,13 @@ def hide_key(match: re.Match[str]) -> str:
     return match.group()[:7] + "..."
 
 
-def hits(text: str) -> Iterator[Hit]:
+def hits(text: str, rules: tuple[Rule, ...] = RULES) -> Iterator[Hit]:
     """One hit per line and rule. Keys are cut short so a log never holds one."""
     for line_no, line in enumerate(text.split("\n"), 1):
         shown = API_KEY.pattern.sub(hide_key, line).strip()
         if len(shown) > EXCERPT_WIDTH:
             shown = shown[:EXCERPT_WIDTH] + "..."
-        for r in RULES:
+        for r in rules:
             if r.pattern.search(line):
                 yield Hit(line_no, line, r.name, shown)
 
@@ -155,11 +159,32 @@ def load_allowlist(root: Path) -> set[tuple[str, str]]:
     return entries
 
 
-def scan_files(root: Path) -> tuple[int, list[Finding], int]:
-    """Returns (files scanned, findings, findings suppressed by the allowlist)."""
+def check_exempt_dirs(exempt_dirs: tuple[str, ...]) -> None:
+    """An empty entry matches every file and one without a trailing slash also matches
+    sibling directories that share its prefix, so both are refused."""
+    for entry in exempt_dirs:
+        parts = Path(entry).parts
+        if (
+            not entry.endswith("/")
+            or entry.startswith("/")
+            or ".." in parts
+            or any(c in entry for c in "*?[")
+        ):
+            raise CheckError(
+                f"exempt entry {entry!r}: expected a relative directory path that "
+                "ends in '/' and has no '..' or wildcard"
+            )
+
+
+def scan_files(
+    root: Path, exempt_dirs: tuple[str, ...] = EXEMPT_DIRS
+) -> tuple[int, list[Finding], int, int]:
+    """Returns (files scanned, findings, findings suppressed by the allowlist, files
+    under an exempt directory). Exempt files count as scanned."""
+    check_exempt_dirs(exempt_dirs)
     allowed = load_allowlist(root)
     findings: list[Finding] = []
-    scanned = suppressed = 0
+    scanned = suppressed = exempt = 0
     for name in list_files(root):
         # A tracked file deleted from the work tree, or a submodule, is not a file here.
         if not (root / name).is_file():
@@ -168,7 +193,10 @@ def scan_files(root: Path) -> tuple[int, list[Finding], int]:
         if text is None:
             continue
         scanned += 1
-        for hit in hits(text):
+        is_exempt = name.startswith(exempt_dirs)
+        if is_exempt:
+            exempt += 1
+        for hit in hits(text, EXEMPT_RULES if is_exempt else RULES):
             # An entry holds the string it allows, so only comments are checked there.
             if name == ALLOWLIST and not hit.line.startswith("#"):
                 continue
@@ -176,23 +204,23 @@ def scan_files(root: Path) -> tuple[int, list[Finding], int]:
                 suppressed += 1
             else:
                 findings.append(Finding(f"{name}:{hit.line_no}", hit.rule, hit.excerpt))
-    return scanned, findings, suppressed
+    return scanned, findings, suppressed, exempt
 
 
-def summary(files: int, findings: list[Finding], suppressed: int) -> str:
+def summary(files: int, findings: list[Finding], suppressed: int, exempt: int) -> str:
     by_rule = Counter(f.rule for f in findings)
     detail = ", ".join(f"{name} {n}" for name, n in sorted(by_rule.items()))
     count = f"{len(findings)} ({detail})" if detail else "0"
-    return f"files {files}, findings {count}, allowed {suppressed}"
+    return f"files {files}, findings {count}, allowed {suppressed}, exempt {exempt}"
 
 
 def run(root: Path) -> int:
     if not root.is_dir():
         raise CheckError(f"--root {root} is not a directory")
-    files, findings, suppressed = scan_files(root)
+    files, findings, suppressed, exempt = scan_files(root)
     for finding in findings:
         print(finding.render())
-    print(summary(files, findings, suppressed))
+    print(summary(files, findings, suppressed, exempt))
     return 1 if findings else 0
 
 

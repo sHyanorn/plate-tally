@@ -22,7 +22,7 @@ The repository holds the specification, the accuracy evaluation of the hosted mo
 
 - Everything committed (code, comments, docs, commit messages) is in English and concise: say what changed and why, not the step-by-step process.
 - No em dash and no en dash.
-- The platform vendor's name never appears in any file, in any case, also inside other words. scripts/check_strings.py enforces it. scripts/string_allowlist.txt holds only lines that a tool forces into a file.
+- The platform vendor's name never appears in any file, in any case, also inside other words. scripts/check_strings.py enforces it. scripts/string_allowlist.txt holds only lines that a tool forces into a file. Model replies recorded in eval/raw are data and stay as received: the check exempts that directory from the vendor-name and dash rules and keeps the key rule.
 - Model names: the models the app calls and the evaluation measures, with their vendor. No other model is named.
 - No model API key in files, workflows or builds. CI signing and upload will use secrets.
 - Tests and CI never call a paid API.
