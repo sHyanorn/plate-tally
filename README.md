@@ -6,7 +6,7 @@ plate-tally is specified as an iOS app for one person's daily use. It will estim
 
 1. Photograph a meal. The app will resize the photo to 1024 px on the long side and send it to a hosted model, Claude Sonnet 5.5 (Anthropic).
 2. The model will list the visible foods with gram weights.
-3. You correct the list. Energy will be recomputed on the device from a local table built from USDA FoodData Central (CC0). Where no table entry matches, the model's own kcal value will be used and marked as an estimate.
+3. You correct the list: names, grams and kcal. The energy of the meal will be the sum of the items, added up on the device and marked as an estimate. A change of the grams will scale the kcal of that item in proportion. There will be no food table (D011).
 4. Expenditure will come from the Mifflin-St Jeor equation times one of four activity factors.
 
 Model calls will be paid by you, per call, with your own API key. The app will show the cost of each call and enforce a daily call limit (default 30). The key will be stored only in the keychain and will be sent only to the Anthropic API as the request credential. There will be no server and no account. Requirements are in [docs/SPEC.md](docs/SPEC.md).

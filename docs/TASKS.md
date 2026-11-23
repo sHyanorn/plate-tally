@@ -36,20 +36,18 @@ The half of G2 that needs no paid account comes first, so the build route is kno
 
 ## M1 Logic as a Swift package, tested on Linux
 
-No UI code. Each module has tests that run on Linux without network.
+No UI code. Each module has tests that run on Linux without network. M1.4 (FoodData) and M1.7 (table generator) moved to M4 by D011.
 
 - [ ] M1.1 Core: food item, meal, units, errors.
 - [ ] M1.2 Energy: Mifflin-St Jeor, activity factors, the test vector in SPEC.md.
 - [ ] M1.3 Estimation: request building, response parsing and validation (R5, R6).
-- [ ] M1.4 FoodData: local table, name matching, kcal per 100 g. Record the matching rule in DECISIONS.md first.
 - [ ] M1.5 Ledger: meal records, daily totals, edit and recompute.
 - [ ] M1.6 Cost: price table, per-call cost from usage, day and month totals, call limit.
-- [ ] M1.7 FoodData table generator from USDA data. The generated table is not committed. Foundation Foods energy is in the Atwater fields (nutrient id 2047 and 2048); the SR Legacy field is checked in M1.
 - [ ] M1.8 CI on Linux: repository checks and package tests.
 
 ## M2 Interface and CI
 
-- [ ] M2.1 Screen: capture or pick a photo, resize, JPEG, request.
+- [ ] M2.1 Screen: capture or pick a photo, turn it upright, resize, JPEG, request.
 - [ ] M2.2 Screen: item list with editing.
 - [ ] M2.3 Screen: day view with intake and expenditure.
 - [ ] M2.4 Screen: settings for key, profile, activity factor and call limit.
@@ -73,3 +71,4 @@ Not commitments.
 - Compare the model's list with weighed meals.
 - An on-device model, once one meets the accuracy bar.
 - Export of daily totals.
+- A food table from USDA FoodData Central (Foundation Foods and SR Legacy, public domain) with name matching that returns no weak match, as postponed in D011. Checked on 2026-11-23 in the downloads of 2026-10-29 and 2018-04: SR Legacy has kcal in nutrient id 1008 for all 7,793 foods. Foundation Foods has it in id 2048 (Atwater specific factors) for 313 of 498 foods, in id 2047 (Atwater general factors) for 399, and in id 1008 for 135, of which 31 have only that one; 68 have none. Take 2048, else 2047, else 1008.
