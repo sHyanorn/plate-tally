@@ -209,10 +209,9 @@ final class ScreenshotTests: XCTestCase {
 
     /// Runs the check once with the light look and once with the dark look, on a fresh launch each.
     private func eachAppearance(_ options: [String] = [], _ check: (XCUIApplication, String) -> Void) {
-        for (look, appearance) in [("light", XCUIDevice.Appearance.light), ("dark", .dark)] {
-            XCUIDevice.shared.appearance = appearance
+        for look in ["light", "dark"] {
             let app = XCUIApplication()
-            app.launchArguments = ["-ui-test"] + options
+            app.launchArguments = ["-ui-test", "-ui-appearance", look] + options
             app.launch()
             check(app, look)
             app.terminate()

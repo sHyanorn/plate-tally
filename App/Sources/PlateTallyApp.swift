@@ -32,6 +32,9 @@ private struct RootView: View {
     var body: some View {
         DayView(model: session.model, keys: session.keys)
             .environment(\.locale, session.model.settings.language.locale)
+            #if DEBUG
+            .preferredColorScheme(UITestHarness.colorScheme)
+            #endif
     }
 }
 

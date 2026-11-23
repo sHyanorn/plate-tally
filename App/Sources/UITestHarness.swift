@@ -1,6 +1,7 @@
 #if DEBUG
 import Core
 import Foundation
+import SwiftUI
 import Tally
 import UIKit
 
@@ -10,6 +11,8 @@ import UIKit
 /// `-ui-key` starts with a key, `-ui-profile` with a profile, `-ui-seed` with two meals today,
 /// `-ui-limit N` with a daily limit of N, `-ui-reply good|invalid|offline` picks the reply,
 /// `-ui-language zh` starts in Chinese (the tests read the English texts otherwise).
+/// `-ui-appearance light|dark` sets the colour scheme of the app. The appearance that the tests set
+/// through XCUIDevice did not reach it.
 /// Release builds have none of this.
 @MainActor
 enum UITestHarness {
@@ -19,6 +22,16 @@ enum UITestHarness {
     private static let now = Date(timeIntervalSince1970: 1_795_437_000)
 
     static var isActive: Bool { arguments.contains("-ui-test") }
+
+    /// The colour scheme that `-ui-appearance` names, or nil to follow the system.
+    static var colorScheme: ColorScheme? {
+        guard isActive else { return nil }
+        switch option("-ui-appearance") {
+        case "dark": return .dark
+        case "light": return .light
+        default: return nil
+        }
+    }
 
     /// The picture that the "Choose photo" button hands over instead of opening the library.
     static var photo: UIImage? {
