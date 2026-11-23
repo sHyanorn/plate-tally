@@ -77,7 +77,7 @@ struct SettingsView: View {
                         sexRow
                     }
                 }
-                group("Activity") {
+                group("Activity", detail: activityFactor) {
                     Picker("Activity", selection: activityBinding) {
                         ForEach(ActivityLevel.allCases, id: \.self) { level in
                             Text(Self.name(of: level)).tag(level)
@@ -140,10 +140,20 @@ struct SettingsView: View {
         .designSheet()
     }
 
-    /// A group of settings under its caption.
-    private func group(_ title: LocalizedStringKey, @ViewBuilder content: () -> some View) -> some View {
+    /// A group of settings under its caption, with an optional figure at the end of the caption row.
+    private func group(
+        _ title: LocalizedStringKey, detail: String? = nil, @ViewBuilder content: () -> some View
+    ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title).textRole(.caption).foregroundStyle(Palette.ink2).accessibilityAddTraits(.isHeader)
+            HStack(spacing: 8) {
+                Text(title).accessibilityAddTraits(.isHeader)
+                if let detail {
+                    Spacer(minLength: 8)
+                    Text(verbatim: detail)
+                }
+            }
+            .textRole(.caption)
+            .foregroundStyle(Palette.ink2)
             content()
         }
     }
@@ -186,6 +196,11 @@ struct SettingsView: View {
             .contentShape(.rect)
         }
         .accessibilityIdentifier("sex")
+    }
+
+    /// The factor of the chosen level tells what the level means; the segments hold only the names.
+    private var activityFactor: String {
+        "×" + model.settings.activity.factor.formatted(.number.precision(.fractionLength(2)))
     }
 
     private var trimmedKey: String { keyText.trimmingCharacters(in: .whitespacesAndNewlines) }
