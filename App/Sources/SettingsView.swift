@@ -74,16 +74,7 @@ struct SettingsView: View {
                         SettingsDivider()
                         field("Age (years)", text: $ageText, id: "age", keyboard: .numberPad)
                         SettingsDivider()
-                        LabeledContent("Sex") {
-                            Picker("Sex", selection: sexBinding) {
-                                Text("Not set").tag(Sex?.none)
-                                Text("Female").tag(Sex?.some(.female))
-                                Text("Male").tag(Sex?.some(.male))
-                            }
-                            .labelsHidden()
-                            .accessibilityIdentifier("sex")
-                        }
-                        .settingsRow()
+                        sexRow
                     }
                 }
                 group("Activity") {
@@ -169,6 +160,34 @@ struct SettingsView: View {
         .settingsRow()
     }
 
+    /// The whole row opens the menu, as a row of a list does: with the number pad up after the age, only the
+    /// top of the row stays in sight.
+    private var sexRow: some View {
+        Menu {
+            Picker(selection: sexBinding) {
+                ForEach(Self.sexes, id: \.self) { sex in
+                    Text(Self.name(of: sex)).tag(sex)
+                }
+            } label: {
+                EmptyView()
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Text("Sex")
+                Spacer(minLength: 8)
+                Text(Self.name(of: model.settings.sex))
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(.footnote, design: .rounded, weight: .bold))
+                    .accessibilityHidden(true)
+            }
+            .foregroundStyle(Palette.ink)
+            .frame(maxWidth: .infinity)
+            .settingsRow()
+            .contentShape(.rect)
+        }
+        .accessibilityIdentifier("sex")
+    }
+
     private var trimmedKey: String { keyText.trimmingCharacters(in: .whitespacesAndNewlines) }
 
     private var languageBinding: Binding<Language> {
@@ -213,6 +232,16 @@ struct SettingsView: View {
             model.refreshKey()
         } catch {
             problem = Problem(error)
+        }
+    }
+
+    private static let sexes: [Sex?] = [nil, .female, .male]
+
+    private static func name(of sex: Sex?) -> LocalizedStringKey {
+        switch sex {
+        case nil: "Not set"
+        case .female?: "Female"
+        case .male?: "Male"
         }
     }
 

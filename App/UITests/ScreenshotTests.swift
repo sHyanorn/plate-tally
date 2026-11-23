@@ -157,7 +157,9 @@ final class ScreenshotTests: XCTestCase {
             fill(app.textFields["height"], "175")
             fill(app.textFields["weight"], "70")
             fill(app.textFields["age"], "30")
-            app.buttons["sex"].tap()
+            // The number pad covers the lower part of the sex row, its centre included. The whole row opens
+            // the menu, so the tap goes near its top edge, where a finger would reach it.
+            app.buttons["sex"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)).tap()
             app.buttons["Male"].tap()
             snap("settings-filled", look)
 
