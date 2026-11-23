@@ -27,104 +27,133 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("Language") {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                group("Language") {
                     Picker("Language", selection: languageBinding) {
                         ForEach(Language.allCases, id: \.self) { language in
                             Text(verbatim: language.locale.localizedString(forIdentifier: language.rawValue) ?? language.rawValue)
                                 .tag(language)
                         }
                     }
-                    .pickerStyle(.inline)
+                    .pickerStyle(.segmented)
                     .labelsHidden()
                     .accessibilityIdentifier("language")
                 }
-                keySection
-                Section("Profile") {
-                    field("Height (cm)", text: $heightText, id: "height", keyboard: .decimalPad)
-                    field("Weight (kg)", text: $weightText, id: "weight", keyboard: .decimalPad)
-                    field("Age (years)", text: $ageText, id: "age", keyboard: .numberPad)
-                    Picker("Sex", selection: sexBinding) {
-                        Text("Not set").tag(Sex?.none)
-                        Text("Female").tag(Sex?.some(.female))
-                        Text("Male").tag(Sex?.some(.male))
-                    }
-                    .accessibilityIdentifier("sex")
-                }
-                Section("Activity") {
-                    Picker("Activity", selection: activityBinding) {
-                        ForEach(ActivityLevel.allCases, id: \.self) { level in
-                            let factor = level.factor.formatted(.number.precision(.fractionLength(2)))
-                            HStack {
-                                Text(Self.name(of: level))
-                                Spacer()
-                                Text(verbatim: "×\(factor)").foregroundStyle(.secondary)
+                group("API key") {
+                    SettingsCard {
+                        HStack(spacing: 12) {
+                            SecureField("Anthropic API key", text: $keyText)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .tint(Palette.moss)
+                                .accessibilityIdentifier("api-key")
+                            Button("Save key", action: saveKey)
+                                .buttonStyle(SmallPillStyle(prominent: false))
+                                .disabled(trimmedKey.isEmpty)
+                                .accessibilityIdentifier("save-key")
+                        }
+                        .settingsRow()
+                        if model.hasKey {
+                            SettingsDivider()
+                            HStack(spacing: 12) {
+                                Label("Key saved", systemImage: "checkmark")
+                                Spacer(minLength: 8)
+                                Button("Remove key", role: .destructive) { confirmingRemove = true }
+                                    .buttonStyle(SmallPillStyle(prominent: false))
                             }
-                            .tag(level)
+                            .settingsRow()
                         }
                     }
-                    .pickerStyle(.inline)
+                }
+                group("Profile") {
+                    SettingsCard {
+                        field("Height (cm)", text: $heightText, id: "height", keyboard: .decimalPad)
+                        SettingsDivider()
+                        field("Weight (kg)", text: $weightText, id: "weight", keyboard: .decimalPad)
+                        SettingsDivider()
+                        field("Age (years)", text: $ageText, id: "age", keyboard: .numberPad)
+                        SettingsDivider()
+                        LabeledContent("Sex") {
+                            Picker("Sex", selection: sexBinding) {
+                                Text("Not set").tag(Sex?.none)
+                                Text("Female").tag(Sex?.some(.female))
+                                Text("Male").tag(Sex?.some(.male))
+                            }
+                            .labelsHidden()
+                            .accessibilityIdentifier("sex")
+                        }
+                        .settingsRow()
+                    }
+                }
+                group("Activity") {
+                    Picker("Activity", selection: activityBinding) {
+                        ForEach(ActivityLevel.allCases, id: \.self) { level in
+                            Text(Self.name(of: level)).tag(level)
+                        }
+                    }
+                    .pickerStyle(.segmented)
                     .labelsHidden()
                 }
-                Section("Calls") {
-                    Stepper(value: limitBinding, in: UserSettings.dailyLimits) {
-                        LabeledContent("Daily limit", value: "\(model.settings.dailyCallLimit)")
+                group("Calls") {
+                    SettingsCard {
+                        Stepper(value: limitBinding, in: UserSettings.dailyLimits) {
+                            LabeledContent("Daily limit", value: "\(model.settings.dailyCallLimit)")
+                        }
+                        .settingsRow()
+                        .accessibilityIdentifier("daily-limit")
                     }
-                    .accessibilityIdentifier("daily-limit")
                 }
-                Section("Usage") {
-                    let today = model.today
-                    LabeledContent("Calls today") {
-                        Text("\(model.callLog.count(on: today)) of \(model.settings.dailyCallLimit)")
+                group("Usage") {
+                    SettingsCard {
+                        let today = model.today
+                        LabeledContent("Calls today") {
+                            Text("\(model.callLog.count(on: today)) of \(model.settings.dailyCallLimit)")
+                        }
+                        .settingsRow()
+                        SettingsDivider()
+                        LabeledContent("Cost today", value: usd(model.callLog.total(on: today))).settingsRow()
+                        SettingsDivider()
+                        LabeledContent("Cost this month", value: usd(model.callLog.total(inMonthOf: today)))
+                            .settingsRow()
+                        SettingsDivider()
+                        LabeledContent("Version", value: Self.version).settingsRow()
                     }
-                    LabeledContent("Cost today", value: usd(model.callLog.total(on: today)))
-                    LabeledContent("Cost this month", value: usd(model.callLog.total(inMonthOf: today)))
-                }
-                Section {
-                    LabeledContent("Version", value: Self.version)
                 }
             }
-            .navigationTitle("Settings")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
-                }
-            }
-            .onChange(of: heightText) { _, text in
-                change { $0.heightCm = try? Number.parse(text, field: "Height") }
-            }
-            .onChange(of: weightText) { _, text in
-                change { $0.weightKg = try? Number.parse(text, field: "Weight") }
-            }
-            .onChange(of: ageText) { _, text in
-                change { $0.ageYears = (try? Number.parse(text, field: "Age")).flatMap { Int(exactly: $0) } }
-            }
-            .confirmationDialog("Remove the saved key?", isPresented: $confirmingRemove, titleVisibility: .visible) {
-                Button("Remove", role: .destructive) { removeKey() }
-                Button("Cancel", role: .cancel) {}
-            }
-            .problemAlert("Could not save", $problem)
+            .padding(.horizontal, Metrics.margin)
+            .padding(.bottom, Metrics.margin)
+            .foregroundStyle(Palette.ink)
         }
-        // A new locale does not always reach the title of the bar, which kept the old language while the rows
-        // changed. A stack of its own for each language resolves the title in the new one.
-        .id(model.settings.language)
+        .scrollDismissesKeyboard(.interactively)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            SheetHeader(title: "Settings", titleID: "settings-title") {
+                Button("Done") { dismiss() }.buttonStyle(SmallPillStyle(prominent: true))
+            }
+        }
+        .background(Palette.canvas)
+        .onChange(of: heightText) { _, text in
+            change { $0.heightCm = try? Number.parse(text, field: "Height") }
+        }
+        .onChange(of: weightText) { _, text in
+            change { $0.weightKg = try? Number.parse(text, field: "Weight") }
+        }
+        .onChange(of: ageText) { _, text in
+            change { $0.ageYears = (try? Number.parse(text, field: "Age")).flatMap { Int(exactly: $0) } }
+        }
+        .confirmationDialog("Remove the saved key?", isPresented: $confirmingRemove, titleVisibility: .visible) {
+            Button("Remove", role: .destructive) { removeKey() }
+            Button("Cancel", role: .cancel) {}
+        }
+        .problemAlert("Could not save", $problem)
+        .designSheet()
     }
 
-    private var keySection: some View {
-        Section("API key") {
-            SecureField("Anthropic API key", text: $keyText)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .accessibilityIdentifier("api-key")
-            Button("Save key", action: saveKey)
-                .disabled(trimmedKey.isEmpty)
-                .accessibilityIdentifier("save-key")
-            if model.hasKey {
-                Label("Key saved", systemImage: "checkmark.circle.fill").foregroundStyle(.secondary)
-                Button("Remove key", role: .destructive) { confirmingRemove = true }
-            }
+    /// A group of settings under its caption.
+    private func group(_ title: LocalizedStringKey, @ViewBuilder content: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title).textRole(.caption).foregroundStyle(Palette.ink2).accessibilityAddTraits(.isHeader)
+            content()
         }
     }
 
@@ -133,8 +162,11 @@ struct SettingsView: View {
             TextField("", text: text)
                 .keyboardType(keyboard)
                 .multilineTextAlignment(.trailing)
+                .textRole(.name)
+                .tint(Palette.moss)
                 .accessibilityIdentifier(id)
         }
+        .settingsRow()
     }
 
     private var trimmedKey: String { keyText.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -204,4 +236,50 @@ private func infoValue(_ key: String) -> String {
         fatalError("Info.plist key \(key): expected a string, saw \(String(describing: value))")
     }
     return text
+}
+
+/// Rows of settings on one card.
+private struct SettingsCard<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(spacing: 0) {
+            content
+        }
+        .textRole(.body)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 4)
+        .background(Palette.surface, in: .rect(cornerRadius: Metrics.cardRadius))
+    }
+}
+
+private struct SettingsDivider: View {
+    var body: some View {
+        Rectangle().fill(Palette.line).frame(height: 1)
+    }
+}
+
+extension View {
+    fileprivate func settingsRow() -> some View {
+        frame(minHeight: 52)
+    }
+}
+
+/// A small round button inside a row or beside a title. The prominent one is ink, the other the second surface.
+private struct SmallPillStyle: ButtonStyle {
+    let prominent: Bool
+
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .textRole(.label)
+            .lineLimit(1)
+            .padding(.horizontal, 16)
+            .frame(minHeight: 36)
+            .foregroundStyle(prominent ? Palette.onInk : Palette.ink)
+            .background(prominent ? Palette.ink : Palette.surface2, in: .capsule)
+            .contentShape(.capsule)
+            .opacity(isEnabled ? (configuration.isPressed ? 0.7 : 1) : 0.4)
+    }
 }

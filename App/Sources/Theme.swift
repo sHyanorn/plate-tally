@@ -43,6 +43,7 @@ enum TextRole {
     case inputText
     case inputUnit
     case name
+    case body
     case label
     case button
     case caption
@@ -60,6 +61,7 @@ enum TextRole {
         case .inputText: 22
         case .inputUnit: 18
         case .name: 17
+        case .body: 17
         case .label: 15
         case .button: 18
         case .caption: 13
@@ -71,6 +73,7 @@ enum TextRole {
         switch self {
         case .tagNumber, .sideNumber, .cardNumber, .rowNumber, .inputNumber, .inputText: .black
         case .pageTitle, .sheetTitle, .name, .label, .button, .unit, .inputUnit: .heavy
+        case .body: .semibold
         case .caption: .bold
         }
     }
@@ -81,6 +84,7 @@ enum TextRole {
         case .sheetTitle, .sideNumber, .cardNumber: .title
         case .inputText: .title2
         case .name, .button, .rowNumber, .inputUnit: .headline
+        case .body: .body
         case .label: .subheadline
         case .caption, .unit: .footnote
         }

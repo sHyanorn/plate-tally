@@ -145,7 +145,7 @@ final class ScreenshotTests: XCTestCase {
     func testSettingsTakeAKeyAndAProfileAndTheDayShowsTheExpenditure() {
         eachAppearance { app, look in
             app.buttons["settings"].tap()
-            XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
+            XCTAssertTrue(app.staticTexts["settings-title"].waitForExistence(timeout: 5))
             snap("settings-empty", look)
             XCTAssertTrue(hasText("Light", in: app))
 
@@ -251,15 +251,15 @@ final class ScreenshotTests: XCTestCase {
         eachAppearance(["-ui-language", "zh"]) { app, look in
             app.buttons["settings"].tap()
             XCTAssertTrue(app.secureTextFields["api-key"].waitForExistence(timeout: 5))
-            XCTAssertFalse(app.navigationBars["Settings"].exists)
+            XCTAssertNotEqual(app.staticTexts["settings-title"].label, "Settings")
             snap("settings", look + "-zh")
 
             app.descendants(matching: .any)["English"].firstMatch.tap()
             // The screen is kept before the checks, so a failure leaves its picture.
-            _ = app.navigationBars["Settings"].waitForExistence(timeout: 5)
+            _ = app.staticTexts["Settings"].waitForExistence(timeout: 5)
             snap("settings-switched", look)
             XCTAssertEqual(app.secureTextFields["api-key"].placeholderValue, "Anthropic API key")
-            XCTAssertTrue(app.navigationBars["Settings"].exists)
+            XCTAssertEqual(app.staticTexts["settings-title"].label, "Settings")
 
             // The day draws its own title, and it follows the switch too.
             app.buttons["Done"].tap()
