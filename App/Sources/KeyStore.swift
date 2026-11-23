@@ -56,7 +56,7 @@ struct KeychainKeyStore: KeyStore {
         let data = Data(key.utf8)
         var item = identity
         item[kSecValueData as String] = data
-        // Not synced and not in backups: the key stays on this device.
+        // Not synced, and it does not move to another device.
         item[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         var status = SecItemAdd(item as CFDictionary, nil)
         if status == errSecDuplicateItem {
