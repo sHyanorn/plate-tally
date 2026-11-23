@@ -2,7 +2,7 @@
 
 plate-tally is specified as an iOS app (native SwiftUI) for one person's daily use. It will estimate the energy of a meal from a photo with a hosted model and show the estimated daily energy expenditure. It will be installed through TestFlight and built on hosted macOS runners.
 
-The repository holds the specification, the accuracy evaluation of the hosted models (Python, in eval/), the repository checks (scripts/), a one-screen SwiftUI app with its project spec (App/) and a Swift package (Package.swift, Sources/, Tests/). Licence: MIT.
+The repository holds the specification, the accuracy evaluation of the hosted models (Python, in eval/), the repository checks (scripts/), the SwiftUI app with its project spec, unit tests and UI tests (App/) and a Swift package (Package.swift, Sources/, Tests/). Licence: MIT.
 
 ## Read first
 
@@ -51,4 +51,4 @@ uv run --project eval python -m plate_eval run --dry-run
 
 Run all eight before each commit. The two Swift commands need Swift from swift.org (6.3.3 in CI, chosen to match Xcode 26.6) and no network. The last one makes no network call and needs no key. A real `run` needs a key in the environment and is part of M0 only.
 
-The app builds only on a hosted macOS runner (.github/workflows/ios-build.yml). No command here builds it; the Swift commands build the package. The generated project file is never committed (D008).
+The app builds and its tests run only on a hosted macOS runner (.github/workflows/ios-build.yml). No command here builds it; the Swift commands build the package. The generated project file is never committed (D008).

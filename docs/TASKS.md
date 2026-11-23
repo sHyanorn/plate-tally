@@ -47,15 +47,18 @@ No UI code. Each module has tests that run on Linux without network. M1.4 (FoodD
 
 ## M2 Interface and CI
 
-- [ ] M2.1 Screen: capture or pick a photo, turn it upright, resize, JPEG, request.
-- [ ] M2.2 Screen: item list with editing.
-- [ ] M2.3 Screen: day view with intake and expenditure.
-- [ ] M2.4 Screen: settings for key, profile, activity factor and call limit.
-- [ ] M2.5 Extend App/project.yml with the Swift package and the screens.
-- [ ] M2.6 Extend the hosted macOS build in CI to build the screens.
+- [x] M2.1 Screen: capture or pick a photo, turn it upright, resize, JPEG, request.
+- [x] M2.2 Screen: item list with editing.
+- [x] M2.3 Screen: day view with intake and expenditure.
+- [x] M2.4 Screen: settings for language, key, profile, activity factor and call limit.
+- [x] M2.5 Extend App/project.yml with the Swift package and the screens.
+- [x] M2.6 Extend the hosted macOS build in CI to build and test the screens (D016).
+- [x] M2.7 Design: one accent colour and the price tag on the screens of the app (D017).
+- [x] M2.8 Energy converter and kJ in the item form (R27, D018).
 
 ## M3 First installable build
 
+- [ ] M3.0 App icon.
 - [ ] M3.1 Signing of the full app, reusing G2.3.
 - [ ] M3.2 Upload of the full app to TestFlight from CI, reusing G2.3.
 - [ ] M3.3 Beta test group.

@@ -6,7 +6,7 @@ plate-tally is specified as an iOS app for one person's daily use. It will estim
 
 1. Photograph a meal. The app will resize the photo to 1024 px on the long side and send it to a hosted model, Claude Sonnet 5.5 (Anthropic).
 2. The model will list the visible foods with gram weights.
-3. You correct the list: names, grams and kcal. The energy of the meal will be the sum of the items, added up on the device and marked as an estimate. A change of the grams will scale the kcal of that item in proportion. There will be no food table (D011).
+3. You correct the list: names, grams and kcal. The energy of the meal will be the sum of the items, added up on the device and marked as an estimate. A change of the grams will scale the kcal of that item in proportion. There will be no food table (D011). Energy can also be typed in kJ, and a converter will turn the kJ or kcal on a label, per serving or per 100 g, into an item at 4.18 kJ per kcal (D018).
 4. Expenditure will come from the Mifflin-St Jeor equation times one of four activity factors.
 
 Model calls will be paid by you, per call, with your own API key. The app will show the cost of each call and enforce a daily call limit (default 30). The key will be stored only in the keychain and will be sent only to the Anthropic API as the request credential. There will be no server and no account. Requirements are in [docs/SPEC.md](docs/SPEC.md).
@@ -15,7 +15,7 @@ Model calls will be paid by you, per call, with your own API key. The app will s
 
 M0, the accuracy evaluation, is complete. The protocol was registered before any call, and the run is scored in [docs/evaluation-results.md](docs/evaluation-results.md). The lowest mean absolute error is 92.3 kcal (95% interval 82.0 to 103.1), from Claude Sonnet 5.5 with the prompt that lists every food, with 1.7% of calls invalid. D009 chose that model and prompt and decided to go on. The plates are from California cafeterias under a fixed overhead camera, so the number does not carry over to phone photos or home cooking.
 
-The app is one screen that shows its name, version and build number. CI builds and archives it without signing on a hosted macOS runner (App/, .github/workflows/ios-build.yml). Signing and upload to TestFlight follow the enrolment in the paid developer programme. M1, the Swift package, does not wait for it. Core, Energy, Estimation, Ledger and Cost are in, and CI builds and tests the package on Linux. The plan is in [docs/TASKS.md](docs/TASKS.md), the reasons are in [docs/DECISIONS.md](docs/DECISIONS.md).
+M1 and M2 are done. The Swift package (Core, Energy, Estimation, Ledger, Cost, Tally) holds the logic, and CI builds and tests it on Linux. The app (App/) has the day with intake and expenditure, the analysis of a photo, the items of a meal with their edits, a converter from label energy to an item, and settings, in Chinese and English. Only CI compiles and runs it, on a hosted macOS runner (.github/workflows/ios-build.yml): it builds the app for an iPhone simulator, runs its unit and UI tests there and archives it for a device without signing. The app has never run on a device and has never called the model; in its tests a canned reply stands in for the model. Signing and upload to TestFlight follow the enrolment in the paid developer programme. The plan is in [docs/TASKS.md](docs/TASKS.md), the reasons are in [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Evaluation
 
@@ -36,7 +36,7 @@ swift test
 uv run --project eval python -m plate_eval run --dry-run
 ```
 
-These commands build the Swift package, not the app. The app builds in CI on a hosted macOS runner.
+These commands build the Swift package, not the app. The app builds and its tests run in CI on a hosted macOS runner.
 
 ## Limits
 

@@ -1,12 +1,12 @@
 # Specification
 
-The plan is in TASKS.md. The reasons behind choices are in DECISIONS.md (D001 to D014).
+The plan is in TASKS.md. The reasons behind choices are in DECISIONS.md (D001 to D018).
 
 ## Purpose
 
 plate-tally is an iOS app for one person's daily use. It does two things.
 
-1. It estimates the energy of a meal from a photo. A hosted model lists the foods, the user corrects the list, the app adds up the energy.
+1. It estimates the energy of a meal from a photo. A hosted model lists the foods, the user corrects the list, the app adds up the energy. The user can also make an item from the energy on a food label (R27).
 2. It estimates daily energy expenditure and shows it next to the day's intake.
 
 The app reports numbers only. It sets no weight goal, computes no deficit and gives no advice (D004).
@@ -16,6 +16,7 @@ The app reports numbers only. It sets no weight goal, computes no deficit and gi
 - Platform: iOS 26.0 or later, iPhone only, native SwiftUI (D010).
 - Distribution: TestFlight, one user. Builds run on hosted macOS runners.
 - Model: Claude Sonnet 5.5 (claude-sonnet-5-5), from Anthropic, with the item-list prompt the evaluation calls P2 (D001, D002, D009). The app calls one model and uses the measured prompt.
+- Interface languages: Chinese (the default) and English, chosen in settings and applied at once. The three-part error texts (R26) are in English (D015).
 - Out of scope: weight goals, deficit, advice, accounts, a server of our own, analytics, other vendors' models, a food table (D011).
 
 ## Requirements
@@ -30,7 +31,7 @@ The app reports numbers only. It sets no weight goal, computes no deficit and gi
 - R6. Validation rejects. Surrounding whitespace and one surrounding code fence are removed before parsing; nothing else is repaired, trimmed or guessed. A response that fails R5 is shown as an error with its reason code (D012).
 - R7. The app never retries on its own. A new call happens only when the user asks.
 - R8. Each item keeps the kcal that the model gave for its grams. The meal's energy is the sum of its items. The app has no food table (D011).
-- R9. The kcal of an item is the model's estimate until the user types another number. The screen marks the kcal of items and meals as estimates.
+- R9. The kcal of an item is the model's estimate until the user types another number. The screen marks the kcal of items, meals and the day as estimates with the sign ≈; a figure of exactly 0 shows as 0 kcal without it (D015). In the form of an existing item the sign stands before the energy until the user types in it.
 - R10. The user can rename an item, change its grams or its kcal, delete it and add one. An added item needs a name, grams and kcal. Every edit recomputes the meal locally and makes no call. A change of the grams scales the kcal of the item in proportion, and a change whose scaled kcal fall outside the bounds is refused. An edit keeps the bounds of R5, the limit of 20 items included.
 - R11. Saving stores the record: an id, date, time and items (name, grams, kcal). The meal total is the sum of its items. The photo is not stored.
 - R12. The user can edit or delete a stored record. Totals follow.
@@ -40,13 +41,13 @@ The app reports numbers only. It sets no weight goal, computes no deficit and gi
 - R13. The profile holds height (cm), weight (kg), sex (female or male) and age (years), plus one of four activity factors.
 - R14. Estimated daily expenditure = REE times the activity factor, with REE from the Mifflin-St Jeor equation (see Energy).
 - R15. The day view shows each meal, the day's intake and the estimated expenditure. It shows no difference between them and no target.
-- R16. Expenditure is labelled as an estimate.
+- R16. Expenditure is marked as an estimate with the sign ≈.
 
 ### Cost and limit
 
 - R17. After each call whose response has `usage` fields the app shows its cost in USD, computed from those fields and the price table.
 - R18. The app shows cost totals per day and per month.
-- R19. The daily call limit defaults to 30 and is adjustable in settings. At the limit the app refuses a new analysis and says the limit and the count. Browsing and editing stay available.
+- R19. The daily call limit defaults to 30 and is set in settings from 1 to 100. At the limit the app refuses a new analysis and says the limit and the count. Browsing and editing stay available.
 - R20. The user types the API key in settings. The app stores it in the keychain. Without a key the app refuses an analysis and says that a key is missing.
 
 ### Non-functional
@@ -57,6 +58,10 @@ The app reports numbers only. It sets no weight goal, computes no deficit and gi
 - R24. The Swift package builds and its tests pass on Linux, without network and without a key. No test and no CI job calls a paid API.
 - R25. Energy is a pure function of its inputs. The same input gives the same output.
 - R26. An error message states what happened, what was expected and what was seen.
+
+### Energy on labels
+
+- R27. A converter turns the energy on a food label into one item, at 4.18 kJ per kcal (D018). It takes the energy of a serving and its grams, or the energy per 100 g and the grams eaten, in kJ or kcal. The item joins the latest meal of today or starts a new meal at the current time. The item form also takes its energy in kJ. An item stores kcal without rounding, keeps the bounds of R5 and carries ≈ like every item (R9). A conversion makes no call.
 
 ## Flow
 
@@ -111,25 +116,26 @@ Source: vendor pricing page, read 2026-11-22. The prices live in one table in th
 
 ## Architecture
 
-Logic lives in a Swift package at the repository root (Package.swift, Sources/, Tests/) with no UI code. A thin SwiftUI app target sits on top (M2).
+Logic lives in a Swift package at the repository root (Package.swift, Sources/, Tests/) with no UI code. A SwiftUI app target in App/ sits on top.
 
 | Module     | Content                                                                   |
 |------------|---------------------------------------------------------------------------|
-| Core       | Shared types: food item, meal, limits, dates, errors. No dependencies.    |
+| Core       | Shared types: food item, meal, limits, dates, errors, energy units, number fields, stored files. No dependencies. |
 | Energy     | Mifflin-St Jeor, activity factors.                                        |
 | Estimation | Request, JPEG check (R2, R3), reply parsing and validation (R5, R6).      |
-| Ledger     | Meal records, daily totals, edit and recompute.                           |
+| Ledger     | Meal records, daily totals, edit and recompute, the forms of an item and of the converter. |
 | Cost       | Price table, per-call cost from usage, day and month totals, call limit.  |
+| Tally      | State of the app: meals, call log and settings in their files, clock, one analysis, transport seam (D015). |
 
-Every other module uses Core.
+Every other module uses Core. Tally uses all the others.
 
-The app target holds what needs the platform: screens (photo capture or pick, item list with editing, day view, settings for key, profile, activity factor and call limit), photo resizing and JPEG encoding, the HTTPS request, and the keychain.
+The app target holds what needs the platform: the screens (day view, photo capture or pick, analysis, item list with editing, converter, settings for language, key, profile, activity factor and call limit), the design (D017), the string catalogs of the two languages, photo resizing and JPEG encoding, the HTTPS request through URLSession, and the keychain.
 
 Build and release:
 
 - The project file is generated in CI from a text spec, App/project.yml. It is never committed (D008). The generator is XcodeGen, pinned by version and checksum (D010).
 - CI on Linux runs the repository checks and the package tests.
-- CI on a hosted macOS runner builds, signs and uploads to TestFlight.
+- CI on a hosted macOS runner builds the app and its tests for an iPhone simulator, archives the app for a device without signing, and runs the app's unit and UI tests and the package tests on the simulator (D016). Signing and upload to TestFlight are not built yet (G2.3).
 - No model API key is ever in the repository, a workflow or a build (D007). Signing and upload in CI will use secrets.
 
 ## Privacy
