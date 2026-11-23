@@ -17,7 +17,7 @@ struct DayView: View {
     @State private var showLibrary = false
     @State private var pickedItem: PhotosPickerItem?
     @State private var photo: Photo?
-    @State private var refusal: Problem?
+    @State private var showRefusal = false
     @State private var photoProblem: Problem?
     @State private var deleting: Meal?
     @State private var deleteProblem: Problem?
@@ -126,18 +126,18 @@ struct DayView: View {
             Button("Cancel", role: .cancel) {}
         }
         .alert(
-            LocalizedStringKey(model.hasKey ? "Daily limit reached" : "No API key"),
-            isPresented: Binding(main: { refusal != nil }, set: { if !$0 { refusal = nil } }),
-            presenting: refusal
-        ) { _ in
-            if !model.hasKey {
+            LocalizedStringKey(model.hasKey ? "Daily limit reached" : "No API key"), isPresented: $showRefusal
+        ) {
+            if model.hasKey {
+                Button("OK") {}
+            } else {
                 Button("Open settings") { showSettings = true }
                 Button("Cancel", role: .cancel) {}
-            } else {
-                Button("OK") {}
             }
-        } message: { shown in
-            Text(shown.message)
+        } message: {
+            if model.hasKey {
+                Text("\(model.callLog.count(on: model.today)) of \(model.settings.dailyCallLimit)")
+            }
         }
         .problemAlert("Could not use the photo", $photoProblem)
         .problemAlert("Could not delete", $deleteProblem)
@@ -183,10 +183,10 @@ struct DayView: View {
 
     /// The limit and the key are checked before the photo is taken, so no photo is wasted (R19, R20).
     private func startCapture() {
-        if let problem = model.analysisRefusal {
-            refusal = problem
-        } else {
+        if model.analysisRefusal == nil {
             choosingSource = true
+        } else {
+            showRefusal = true
         }
     }
 

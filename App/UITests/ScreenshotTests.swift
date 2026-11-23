@@ -20,7 +20,9 @@ final class ScreenshotTests: XCTestCase {
             app.buttons["add-meal"].tap()
             let alert = app.alerts["No API key"]
             XCTAssertTrue(alert.waitForExistence(timeout: 5))
-            XCTAssertTrue(alert.staticTexts["No API key is set: expected a key saved in settings, saw no key"].exists)
+            XCTAssertTrue(alert.buttons["Open settings"].exists)
+            let threeParts = NSPredicate(format: "label CONTAINS 'expected'")
+            XCTAssertFalse(alert.staticTexts.matching(threeParts).firstMatch.exists)
             snap("refusal-no-key", look)
         }
     }
@@ -123,8 +125,7 @@ final class ScreenshotTests: XCTestCase {
             app.buttons["add-meal"].tap()
             let alert = app.alerts["Daily limit reached"]
             XCTAssertTrue(alert.waitForExistence(timeout: 5))
-            XCTAssertTrue(
-                alert.staticTexts["The daily call limit is reached: expected fewer than 1 calls today, saw 1 calls"].exists)
+            XCTAssertTrue(alert.staticTexts["1 of 1"].exists)
             snap("refusal-limit", look)
         }
     }
