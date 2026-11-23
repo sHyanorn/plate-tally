@@ -84,7 +84,10 @@ struct DayView: View {
             }
             .navigationDestination(for: UUID.self) { StoredMealView(model: model, id: $0) }
             .safeAreaBar(edge: .bottom) {
-                HStack(spacing: 10) {
+                // At accessibility text sizes the two labels do not fit side by side, so the pills stack.
+                let stacked = typeSize.isAccessibilitySize
+                let layout = stacked ? AnyLayout(VStackLayout(spacing: 10)) : AnyLayout(HStackLayout(spacing: 10))
+                layout {
                     Button(action: startCapture) {
                         Label("Add meal", systemImage: "camera").frame(maxWidth: .infinity)
                     }
@@ -93,7 +96,7 @@ struct DayView: View {
                     Button {
                         showConverter = true
                     } label: {
-                        Text(verbatim: "kJ→kcal")
+                        Text(verbatim: "kJ→kcal").frame(maxWidth: stacked ? CGFloat.infinity : nil)
                     }
                     .buttonStyle(PillButtonStyle(kind: .quiet))
                     .accessibilityLabel("Convert kJ to kcal")
