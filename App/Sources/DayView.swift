@@ -248,10 +248,11 @@ private struct EnergyHero: View {
         layout {
             EnergyTag(label: "Intake", kcal: intake, numberID: "intake", minHeight: innerHeight)
             VStack(alignment: .leading) {
-                HStack(spacing: 4) {
+                // The unit goes below the label: beside it, the two need 126 pt of the 108 the block has, and
+                // the label would shrink below the size of "Intake".
+                VStack(alignment: .leading, spacing: 2) {
                     Text("Expenditure").textRole(.label).lineLimit(1).minimumScaleFactor(0.6)
                     if expenditure != nil {
-                        Spacer(minLength: 4)
                         Text(verbatim: "kcal").textRole(.unit).accessibilityHidden(true)
                     }
                 }
