@@ -26,10 +26,13 @@ Run and decide:
 
 ## Gate
 
-After a go and before M1, so the build route is known to work early.
+The half of G2 that needs no paid account comes first, so the build route is known to work early. M1 does not depend on the account. Signing and upload (G2.3) come after G1.
 
 - [ ] G1 Enrol in the platform's paid developer programme.
 - [ ] G2 Smoke test of the upload route: a minimal app built on a hosted macOS runner and uploaded to TestFlight.
+  - [x] G2.1 Minimal app and its project spec.
+  - [x] G2.2 Unsigned build and archive on a hosted macOS runner.
+  - [ ] G2.3 Signing and upload to TestFlight (needs G1).
 
 ## M1 Logic as a Swift package, tested on Linux
 
@@ -50,13 +53,13 @@ No UI code. Each module has tests that run on Linux without network.
 - [ ] M2.2 Screen: item list with editing.
 - [ ] M2.3 Screen: day view with intake and expenditure.
 - [ ] M2.4 Screen: settings for key, profile, activity factor and call limit.
-- [ ] M2.5 Project file generated from a text spec. Not committed.
-- [ ] M2.6 Hosted macOS build in CI.
+- [ ] M2.5 Extend App/project.yml with the Swift package and the screens.
+- [ ] M2.6 Extend the hosted macOS build in CI to build the screens.
 
 ## M3 First installable build
 
-- [ ] M3.1 Signing.
-- [ ] M3.2 Upload to TestFlight from CI.
+- [ ] M3.1 Signing of the full app, reusing G2.3.
+- [ ] M3.2 Upload of the full app to TestFlight from CI, reusing G2.3.
 - [ ] M3.3 Beta test group.
 - [ ] M3.4 Install on the author's device.
 - [ ] M3.5 First week of use: notes on errors, cost and corrections.

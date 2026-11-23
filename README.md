@@ -4,7 +4,7 @@ plate-tally is specified as an iOS app for one person's daily use. It will estim
 
 ## How it will work
 
-1. Photograph a meal. The app will resize the photo to 1024 px on the long side and send it to a hosted model, Claude Haiku 5.5 or Claude Sonnet 5.5 (Anthropic).
+1. Photograph a meal. The app will resize the photo to 1024 px on the long side and send it to a hosted model, Claude Sonnet 5.5 (Anthropic).
 2. The model will list the visible foods with gram weights.
 3. You correct the list. Energy will be recomputed on the device from a local table built from USDA FoodData Central (CC0). Where no table entry matches, the model's own kcal value will be used and marked as an estimate.
 4. Expenditure will come from the Mifflin-St Jeor equation times one of four activity factors.
@@ -13,11 +13,13 @@ Model calls will be paid by you, per call, with your own API key. The app will s
 
 ## State
 
-M0, the accuracy evaluation, is in progress. The protocol is registered. The run is complete and scored in [docs/evaluation-results.md](docs/evaluation-results.md). The lowest mean absolute error is 92.3 kcal (95% interval 82.0 to 103.1), from Claude Sonnet 5.5 with the prompt that lists every food, with 1.7% of calls invalid. The plates are from California cafeterias under a fixed overhead camera, so the number does not carry over to phone photos or home cooking. There is no app code yet. The plan is in [docs/TASKS.md](docs/TASKS.md), the reasons are in [docs/DECISIONS.md](docs/DECISIONS.md).
+M0, the accuracy evaluation, is complete. The protocol was registered before any call, and the run is scored in [docs/evaluation-results.md](docs/evaluation-results.md). The lowest mean absolute error is 92.3 kcal (95% interval 82.0 to 103.1), from Claude Sonnet 5.5 with the prompt that lists every food, with 1.7% of calls invalid. D009 chose that model and prompt and decided to go on. The plates are from California cafeterias under a fixed overhead camera, so the number does not carry over to phone photos or home cooking.
+
+The app is one screen that shows its name, version and build number. CI builds and archives it without signing on a hosted macOS runner (App/, .github/workflows/ios-build.yml). Signing and upload to TestFlight follow the enrolment in the paid developer programme. M1, the Swift package, does not wait for it. The plan is in [docs/TASKS.md](docs/TASKS.md), the reasons are in [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Evaluation
 
-Which model the app calls is decided from measured accuracy and cost. The evaluation runs 2 models and 2 prompts on 300 dishes of the Nutrition5k dataset, 1,200 calls. The protocol was written before any call was made and is in [docs/evaluation-protocol.md](docs/evaluation-protocol.md). Results will be published whatever they are, also when a stop rule leaves the run incomplete.
+Which model the app calls was decided from measured accuracy and cost (D009). The evaluation ran 2 models and 2 prompts on 300 dishes of the Nutrition5k dataset, 1,200 calls. The protocol was written before any call was made and is in [docs/evaluation-protocol.md](docs/evaluation-protocol.md). The results are in [docs/evaluation-results.md](docs/evaluation-results.md).
 
 ## Checks
 
@@ -31,6 +33,8 @@ uv run --project eval ruff format --check eval scripts
 uv run --project eval pytest eval/tests
 uv run --project eval python -m plate_eval run --dry-run
 ```
+
+The app is not built by these commands. It builds in CI on a hosted macOS runner.
 
 ## Limits
 

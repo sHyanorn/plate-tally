@@ -1,6 +1,6 @@
 # Specification
 
-The plan is in TASKS.md. The reasons behind choices are in DECISIONS.md (D001 to D008).
+The plan is in TASKS.md. The reasons behind choices are in DECISIONS.md (D001 to D010).
 
 ## Purpose
 
@@ -13,9 +13,9 @@ The app reports numbers only. It sets no weight goal, computes no deficit and gi
 
 ## Scope
 
-- Platform: iOS, native SwiftUI.
+- Platform: iOS 26.0 or later, iPhone only, native SwiftUI (D010).
 - Distribution: TestFlight, one user. Builds run on hosted macOS runners.
-- Model: Claude Haiku 5.5 (claude-haiku-5-5) or Claude Sonnet 5.5 (claude-sonnet-5-5), both from Anthropic. The choice is made after the M0 evaluation described in evaluation-protocol.md (D001, D002). The app calls one model. The prompt the app uses is the measured prompt of the chosen form.
+- Model: Claude Sonnet 5.5 (claude-sonnet-5-5), from Anthropic, with the item-list prompt the evaluation calls P2 (D001, D002, D009). The app calls one model and uses the measured prompt.
 - Out of scope: weight goals, deficit, advice, accounts, a server of our own, analytics, other vendors' models, branded food data.
 
 ## Requirements
@@ -103,10 +103,9 @@ Cost of a call = input_tokens times input price plus output_tokens times output 
 
 | Model             | Input USD per million | Output USD per million |
 |-------------------|-----------------------|------------------------|
-| Claude Haiku 5.5  | 0.10                  | 0.50                   |
 | Claude Sonnet 5.5 | 2.00                  | 10.00                  |
 
-The Haiku prices are for prompts up to 100,000 tokens ($0.50 input and $2.50 output above that). Source: vendor pricing page, read 2026-11-22. They live in one table in the Cost module with the date they were read.
+Source: vendor pricing page, read 2026-11-22. The prices live in one table in the Cost module with the date they were read.
 
 - A call whose response fails validation is costed from its `usage` fields.
 - Day and month are local calendar day and month.
@@ -130,7 +129,7 @@ The app target holds what needs the platform: screens (photo capture or pick, it
 
 Build and release:
 
-- The project file is generated in CI from a text spec. It is never committed (D008).
+- The project file is generated in CI from a text spec, App/project.yml. It is never committed (D008). The generator is XcodeGen, pinned by version and checksum (D010).
 - CI on Linux runs the repository checks and the package tests.
 - CI on a hosted macOS runner builds, signs and uploads to TestFlight.
 - No model API key is ever in the repository, a workflow or a build (D007). Signing and upload in CI will use secrets.
