@@ -1,30 +1,9 @@
 import Core
 
-/// The edits of R10. Each returns the changed meal and leaves this one as it is, so a refused edit
-/// changes nothing. The total is derived from the items, so it follows every edit.
+/// The edits of R10 that a meal makes itself. An item is changed by ItemEditor. Each returns the changed
+/// meal and leaves this one as it is, so a refused edit changes nothing. The total is derived from the
+/// items, so it follows every edit.
 extension Meal {
-    public func renamingItem(at index: Int, to name: String) throws(LedgerError) -> Meal {
-        var item = try requireItem(at: index)
-        try Self.requireName(name)
-        item.name = name
-        return replacing(index, with: item)
-    }
-
-    /// The kcal of the item scale in proportion to the grams (R10). An edit that would put the scaled
-    /// kcal outside 0 to 5000 is refused as a whole.
-    public func settingGrams(ofItemAt index: Int, to grams: Double) throws(LedgerError) -> Meal {
-        let item = try requireItem(at: index)
-        return replacing(index, with: try item.settingGrams(to: grams))
-    }
-
-    /// The grams stay, so the energy per 100 g changes, and a later change of the grams scales from it.
-    public func settingKcal(ofItemAt index: Int, to kcal: Double) throws(LedgerError) -> Meal {
-        var item = try requireItem(at: index)
-        guard Limits.kcal.contains(kcal) else { throw .kcal(kcal) }
-        item.kcal = kcal
-        return replacing(index, with: item)
-    }
-
     public func removingItem(at index: Int) throws(LedgerError) -> Meal {
         _ = try requireItem(at: index)
         var copy = self

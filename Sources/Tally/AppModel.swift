@@ -69,7 +69,8 @@ public final class AppModel {
 
     // MARK: Meals
 
-    /// A meal that is not saved yet. The id is drawn here, because the package draws no random numbers.
+    /// A meal that is not saved yet. Tally draws the id and takes the time from the clock of the app; no other
+    /// module draws a random number or reads a clock.
     public func draft(items: [FoodItem]) -> Meal { Meal(id: UUID(), at: now, items: items) }
 
     public func add(_ meal: Meal) throws(Problem) {

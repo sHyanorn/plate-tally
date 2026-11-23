@@ -115,7 +115,7 @@ private let testVector = {
         let model = try rig.model()
         let saved = try meal()
         try model.add(saved)
-        try model.replace(saved.settingGrams(ofItemAt: 0, to: 300))
+        try model.replace(Meal(id: saved.id, at: saved.at, items: [FoodItem(name: "rice", grams: 300, kcal: 390)]))
         #expect(model.intake(on: saved.at.day) == 390)
         #expect(try rig.model().intake(on: saved.at.day) == 390)
     }
@@ -141,6 +141,17 @@ private let testVector = {
         #expect(throws: Problem.self) { try model.deleteMeal(id: UUID()) }
         #expect(model.ledger.meals == [saved])
         #expect(try Data(contentsOf: rig.ledgerURL) == before)
+    }
+
+    @Test func aMealThatCannotBeReadBackIsRefusedAndNothingIsWritten() throws {
+        let rig = try Rig()
+        let model = try rig.model()
+        let error = #expect(throws: Problem.self) {
+            try model.add(meal(items: [FoodItem(name: "rice", grams: 0, kcal: 1)]))
+        }
+        #expect(error?.what == "the grams are out of range")
+        #expect(model.ledger.meals.isEmpty)
+        #expect(!FileManager.default.fileExists(atPath: rig.ledgerURL.path))
     }
 
     @Test func aMealThatCannotBeWrittenIsNotShown() throws {

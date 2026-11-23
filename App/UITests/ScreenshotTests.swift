@@ -77,7 +77,7 @@ final class ScreenshotTests: XCTestCase {
             app.descendants(matching: .any).matching(identifier: "meal-row").firstMatch.tap()
             XCTAssertTrue(app.navigationBars["Meal"].waitForExistence(timeout: 5))
             snap("meal-stored", look)
-            app.buttons["Delete meal"].tap()
+            app.buttons["delete-meal"].tap()
             XCTAssertTrue(app.buttons["Delete"].waitForExistence(timeout: 5))
             snap("meal-delete-confirm", look)
             app.buttons["Delete"].tap()
@@ -170,12 +170,35 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
-    func testTheSettingsInChinese() {
+    /// The locale of the environment reaches the system alert and the confirmation dialog too.
+    func testAnAlertAndADialogInChinese() {
+        eachAppearance(["-ui-language", "zh"]) { app, look in
+            app.buttons["add-meal"].tap()
+            XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5))
+            XCTAssertNotEqual(app.alerts.firstMatch.label, "No API key")
+            snap("refusal-no-key", look + "-zh")
+        }
+        eachAppearance(["-ui-key", "-ui-seed", "-ui-language", "zh"]) { app, look in
+            app.descendants(matching: .any).matching(identifier: "meal-row").firstMatch.tap()
+            XCTAssertTrue(app.buttons["delete-meal"].waitForExistence(timeout: 5))
+            app.buttons["delete-meal"].tap()
+            // The dialog comes up as a sheet. The screenshot is the evidence, so a late sheet is not a failure.
+            _ = app.sheets.firstMatch.waitForExistence(timeout: 3)
+            snap("meal-delete-confirm", look + "-zh")
+        }
+    }
+
+    /// Settings in Chinese, then the language set to English: the screen changes at once.
+    func testSwitchingTheLanguageAtOnce() {
         eachAppearance(["-ui-language", "zh"]) { app, look in
             app.buttons["settings"].tap()
             XCTAssertTrue(app.secureTextFields["api-key"].waitForExistence(timeout: 5))
             XCTAssertFalse(app.navigationBars["Settings"].exists)
             snap("settings", look + "-zh")
+
+            app.descendants(matching: .any)["English"].firstMatch.tap()
+            XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
+            snap("settings-switched", look)
         }
     }
 

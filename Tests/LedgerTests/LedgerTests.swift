@@ -40,7 +40,7 @@ private let oneMeal = #"{"meals":[\#(riceMealJSON)],"version":1}"#
 
     @Test func replaceSwapsTheMealWithTheSameIdAndKeepsItsPlace() throws {
         var saved = try ledger(try meal([rice], id: 1), try meal([peas], id: 2), try meal([melon], id: 3))
-        let edited = try meal([rice], id: 2).renamingItem(at: 0, to: "lentil")
+        let edited = try meal([FoodItem(name: "lentil", grams: 150, kcal: 195)], id: 2)
         try saved.replace(edited)
         #expect(saved.meals.map(\.id) == (1...3).map(mealID))
         #expect(saved.meals[1] == edited)
@@ -110,9 +110,9 @@ private let oneMeal = #"{"meals":[\#(riceMealJSON)],"version":1}"#
         var saved = try ledger(try meal([rice, peas], id: 1), try meal([melon], id: 2, at: "2026-11-23T19:00"))
         let today = try day("2026-11-23")
         #expect(saved.intake(on: today) == 319)
-        try saved.replace(try meal([rice, peas], id: 1).settingGrams(ofItemAt: 0, to: 300))
+        try saved.replace(try meal([FoodItem(name: "rice", grams: 300, kcal: 390), peas], id: 1))
         #expect(saved.intake(on: today) == 514)
-        try saved.replace(try meal([rice, peas], id: 1).settingGrams(ofItemAt: 0, to: 300).removingItem(at: 1))
+        try saved.replace(try meal([FoodItem(name: "rice", grams: 300, kcal: 390)], id: 1))
         #expect(saved.intake(on: today) == 450)
         try saved.delete(id: mealID(2))
         #expect(saved.intake(on: today) == 390)
@@ -270,15 +270,42 @@ private let oneMeal = #"{"meals":[\#(riceMealJSON)],"version":1}"#
         )
     }
 
+    /// NaN is outside the range of the kcal, so the bounds refuse it before the encoder would.
     @Test func aMealWithAnItemThatCannotBeStoredIsRefusedAtWrite() throws {
         let broken = try meal([FoodItem(name: "x", grams: 1, kcal: .nan)])
         let error = #expect(throws: FormatError.self) { try ledger(broken).encoded() }
-        #expect(error?.what == "the data cannot be stored")
+        #expect(error?.what == "the kcal are out of range")
+        #expect(error?.saw == "nan at meals.Index 0.items.Index 0")
     }
 
     @Test func aReadFileHasTheMealsOfTheFile() throws {
         let saved = try Ledger(decoding: Data(oneMeal.utf8))
         #expect(saved.meals == [try meal([rice], id: 1)])
         #expect(saved.intake(on: try day("2026-11-23")) == 195)
+    }
+}
+
+/// A file that the app cannot read stops the start for good, so what decoding refuses is not written.
+@Suite struct WritingTests {
+    @Test func aMealWithAnItemOutOfRangeIsNotWritten() throws {
+        var saved = Ledger()
+        try saved.add(meal([FoodItem(name: "rice", grams: 0, kcal: 1)]))
+        let error = #expect(throws: FormatError.self) { try saved.encoded() }
+        #expect(error?.what == "the grams are out of range")
+        #expect(error?.saw == "0 at meals.Index 0.items.Index 0")
+    }
+
+    @Test func aMealOfTwentyOneItemsIsNotWritten() throws {
+        var saved = Ledger()
+        try saved.add(meal(Array(repeating: rice, count: 21)))
+        let error = #expect(throws: FormatError.self) { try saved.encoded() }
+        #expect(error?.what == "the meal has too many items")
+        #expect(error?.saw == "21 items at meals.Index 0.items")
+    }
+
+    @Test func theLimitsOfDecodingAreTheLimitsOfWriting() throws {
+        var saved = Ledger()
+        try saved.add(meal(Array(repeating: rice, count: 20)))
+        #expect(try Ledger(decoding: saved.encoded()) == saved)
     }
 }

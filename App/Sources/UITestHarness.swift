@@ -95,7 +95,7 @@ enum UITestHarness {
     private static func transport(reply: String) -> Transport {
         { _ throws(TransportFailure) in
             // Long enough for a test to see the progress screen.
-            try? await Task.sleep(for: .milliseconds(900))
+            try? await Task.sleep(for: .seconds(2))
             switch reply {
             case "offline":
                 throw TransportFailure(

@@ -3,7 +3,7 @@ import Foundation
 /// One saved meal (R11). An edit of the grams of an item scales its kcal by the energy per 100 g
 /// that the item has (R10).
 public struct Meal: Equatable, Sendable, Codable {
-    /// Given by the caller, so the package draws no random numbers.
+    /// Given by the caller, so Core draws no random numbers.
     public let id: UUID
     public var at: LocalDateTime
     public var items: [FoodItem]

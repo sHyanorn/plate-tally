@@ -190,6 +190,7 @@ struct StoredMealView: View {
                 .toolbar {
                     ToolbarItem(placement: .destructiveAction) {
                         Button("Delete meal", systemImage: "trash", role: .destructive) { confirmingDelete = true }
+                            .accessibilityIdentifier("delete-meal")
                     }
                 }
                 .confirmationDialog("Delete this meal?", isPresented: $confirmingDelete, titleVisibility: .visible) {

@@ -21,7 +21,8 @@ enum AppEnvironment {
     /// The three files live in Application Support (D013). An unreadable one is an error and stays as it is.
     static func live() -> Result<Session, Problem> {
         let folder = URL.applicationSupportDirectory.appending(path: "PlateTally", directoryHint: .isDirectory)
-        return model(folder: folder, keys: keys, clock: { Date() }, timeZone: .current)
+        // The zone follows the system, as the date pickers and the formatters do.
+        return model(folder: folder, keys: keys, clock: { Date() }, timeZone: .autoupdatingCurrent)
     }
 
     static func model(

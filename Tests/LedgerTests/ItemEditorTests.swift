@@ -95,6 +95,38 @@ private func editing(_ item: FoodItem = rice, grams: String? = nil, kcal: String
     }
 }
 
+@Suite struct NameRuleTests {
+    @Test func theNameIsKeptAsTyped() {
+        #expect(editing(name: "  rice \n").item() == .success(FoodItem(name: "  rice \n", grams: 150, kcal: 195)))
+    }
+
+    @Test(arguments: [("", 0), ("   \n", 0), (String(repeating: "x", count: 101), 101), (" " + String(repeating: "x", count: 101), 101)])
+    func refusesANameOutsideOneToHundredCharacters(name: String, length: Int) {
+        guard case .failure(let problem) = editing(name: name).item() else { Issue.record("a bad name made an item"); return }
+        #expect(problem == Problem(LedgerError.name(length: length)))
+    }
+
+    @Test func acceptsNamesOfOneAndOneHundredCharacters() {
+        let long = "  " + String(repeating: "x", count: 100) + "\n"
+        #expect(editing(name: long).item() == .success(FoodItem(name: long, grams: 150, kcal: 195)))
+        #expect(editing(name: "x").item() == .success(FoodItem(name: "x", grams: 150, kcal: 195)))
+    }
+
+    /// Length counts Unicode scalars, as R5 does for the reply: one family emoji is five.
+    @Test func nameLengthCountsScalarsNotGraphemes() {
+        let family = "\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}"
+        guard case .success = editing(name: String(repeating: family, count: 20)).item() else {
+            Issue.record("20 family emoji are 100 scalars and fit")
+            return
+        }
+        guard case .failure(let problem) = editing(name: String(repeating: family, count: 21)).item() else {
+            Issue.record("21 family emoji are 105 scalars and do not fit")
+            return
+        }
+        #expect(problem == Problem(LedgerError.name(length: 105)))
+    }
+}
+
 @Suite struct AddingAnItemTests {
     @Test func aNewFormIsEmptyAndMakesNoItem() {
         let editor = ItemEditor()

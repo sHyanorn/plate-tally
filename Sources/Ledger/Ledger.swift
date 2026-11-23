@@ -46,16 +46,24 @@ extension Ledger: StoredValue {
         var meals: [Meal]
     }
 
+    /// A file is held to what an edit keeps (D013), on the way out as on the way in. A ledger that
+    /// decoding would refuse is not written: a file that cannot be read stops the start for good.
     public func encoded() throws(FormatError) -> Data {
-        try StoredFile.encode(File(version: StoredFile.version, meals: meals))
+        try Self.requireStorable(meals)
+        return try StoredFile.encode(File(version: StoredFile.version, meals: meals))
     }
 
-    /// A file is held to what an edit keeps: each meal id once and the bounds of R5 for every item.
     /// Each refusal is a `FormatError` that names the place in the file.
     public init(decoding data: Data) throws(FormatError) {
         let file = try StoredFile.decode(File.self, from: data)
+        try Self.requireStorable(file.meals)
+        self.meals = file.meals
+    }
+
+    /// Each meal id once and the bounds of R5 for every item.
+    private static func requireStorable(_ meals: [Meal]) throws(FormatError) {
         var firstAt: [UUID: Int] = [:]
-        for (m, meal) in file.meals.enumerated() {
+        for (m, meal) in meals.enumerated() {
             if let first = firstAt[meal.id] {
                 throw FormatError(
                     what: "the file holds a meal id twice", expected: "each meal id once",
@@ -73,7 +81,6 @@ extension Ledger: StoredValue {
                 }
             }
         }
-        self.meals = file.meals
     }
 
     private static func refusal(_ error: LedgerError, at path: String) -> FormatError {

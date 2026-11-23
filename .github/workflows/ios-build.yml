@@ -184,6 +184,6 @@ jobs:
           {
             echo "## Errors and failed tests"
             echo '```'
-            (grep -h -E "error:|failed|FAILED" "$RUNNER_TEMP"/*.log || true) | sort -u | head -100
+            (grep -h -E "error:|failed|FAILED" "$RUNNER_TEMP"/*.log || true) | sort -u | sed -n '1,100p'
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
