@@ -74,8 +74,11 @@ public struct JPEGImage: Equatable, Sendable {
             }
             guard position + 4 <= input.count else { throw .truncated(at: position) }
             let length = Int(input[position + 2]) << 8 | Int(input[position + 3])
+            guard length >= 2 else {
+                throw .malformed("a segment length of \(length), below the minimum of 2", at: position)
+            }
             let end = position + 2 + length
-            guard length >= 2, end <= input.count else { throw .truncated(at: position) }
+            guard end <= input.count else { throw .truncated(at: position) }
             let payload = input[(position + 4)..<end]
             if Self.keeps(marker, payload) { output += input[position..<end] }
             if Self.isFrameHeader(marker) { size = try Self.frameSize(Array(payload), at: position) }

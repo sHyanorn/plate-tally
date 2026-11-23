@@ -22,9 +22,40 @@ import Testing
         (#""\"\\\/\b\f\n\r\t""#, .string("\"\\/\u{8}\u{C}\n\r\t")),
         ("\"caf\u{E9} \u{1F600}\"", .string("caf\u{E9} \u{1F600}")),
         (#""""#, .string("")),
+        (#""\u00e9""#, .string("\u{E9}")),
+        (#""\u20AC""#, .string("\u{20AC}")),
+        (#""\ud83d\ude00""#, .string("\u{1F600}")),
+        (#""\uD83D\uDE00""#, .string("\u{1F600}")),
+        (#""a\u0041\u0022\u005c\u002F""#, .string("aA\"\\/")),
+        (#""\u0000""#, .string("\u{0}")),
     ])
     func parsesValues(text: String, value: JSONValue) throws {
         #expect(try StrictJSON.parse(text) == value)
+    }
+
+    @Test func nestingAtTheLimitIsRead() throws {
+        let depth = StrictJSON.maxDepth
+        let arrays = String(repeating: "[", count: depth) + String(repeating: "]", count: depth)
+        let objects = String(repeating: #"{"a":"#, count: depth) + "1" + String(repeating: "}", count: depth)
+        #expect(throws: Never.self) { try StrictJSON.parse(arrays) }
+        #expect(throws: Never.self) { try StrictJSON.parse(objects) }
+    }
+
+    @Test func nestingPastTheLimitIsASyntaxErrorAtTheBracketThatPassesIt() {
+        let depth = StrictJSON.maxDepth + 1
+        let text = String(repeating: "[", count: depth) + String(repeating: "]", count: depth)
+        let error = #expect(throws: JSONSyntaxError.self) { try StrictJSON.parse(text) }
+        #expect(error == JSONSyntaxError(offset: depth - 1, message: "nesting deeper than 16 levels"))
+    }
+
+    /// Depth counts the levels open at one moment, so sibling values do not add up.
+    @Test func siblingsAtTheLimitAreRead() throws {
+        let inner = String(repeating: "[", count: StrictJSON.maxDepth - 1) + String(repeating: "]", count: StrictJSON.maxDepth - 1)
+        #expect(throws: Never.self) { try StrictJSON.parse("[\(inner),\(inner),\(inner)]") }
+    }
+
+    @Test func aHundredThousandOpenBracketsAreASyntaxErrorNotAStackOverflow() {
+        #expect(throws: JSONSyntaxError.self) { try StrictJSON.parse(String(repeating: "[", count: 100_000)) }
     }
 
     @Test func aNumberTooLargeForADoubleReadsAsInfinity() throws {

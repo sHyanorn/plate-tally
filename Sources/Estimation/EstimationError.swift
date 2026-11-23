@@ -67,7 +67,7 @@ extension EstimationError {
     static func notJSON(_ error: JSONSyntaxError, text: String) -> EstimationError {
         EstimationError(
             reason: .notJSON, what: "the reply is not one JSON object", expected: "one JSON object",
-            saw: "\(error.message) at offset \(error.offset) of \(excerpt(text))")
+            saw: "\(error.message) at byte \(error.offset) of \(excerpt(text))")
     }
 
     static func notObject(_ value: JSONValue) -> EstimationError {

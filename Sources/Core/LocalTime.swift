@@ -100,15 +100,11 @@ public struct LocalDateTime: Hashable, Comparable, Sendable {
     public init(_ date: Date, in timeZone: TimeZone) {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
-        let parts = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)
-        guard let year = parts.year, let month = parts.month, let day = parts.day,
-            let hour = parts.hour, let minute = parts.minute
-        else {
-            fatalError("Gregorian calendar gave no day and time: expected five components, saw \(parts)")
-        }
+        func part(_ component: Calendar.Component) -> Int { calendar.component(component, from: date) }
         // The components of a Gregorian calendar are always valid.
         self = try! LocalDateTime(
-            day: LocalDay(year: year, month: month, day: day), hour: hour, minute: minute)
+            day: LocalDay(year: part(.year), month: part(.month), day: part(.day)),
+            hour: part(.hour), minute: part(.minute))
     }
 
     public static func < (a: LocalDateTime, b: LocalDateTime) -> Bool {

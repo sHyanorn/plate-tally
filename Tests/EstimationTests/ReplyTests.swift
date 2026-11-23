@@ -75,6 +75,21 @@ private func jsonString(_ text: String) -> String {
     @Test func escapedCharactersInANameAreDecoded() throws {
         let text = #"{"items": [{"name": "café \"x\"", "grams": 1, "kcal": 1}]}"#
         #expect(try accepted(text).first?.name == "caf\u{E9} \"x\"")
+        let unicode = #"{"items": [{"name": "caf\u00e9 \ud83d\ude00", "grams": 1, "kcal": 1}]}"#
+        #expect(try accepted(unicode).first?.name == "caf\u{E9} \u{1F600}")
+    }
+
+    /// R5 counts scalars and removes only whitespace, so a NUL is a character. The evaluation agrees.
+    @Test func aNulInANameIsKept() throws {
+        let text = #"{"items": [{"name": "\u0000", "grams": 1, "kcal": 1}]}"#
+        #expect(try accepted(text).first?.name == "\u{0}")
+    }
+
+    /// The evaluation splits lines at \n only: a fence whose first line ends in a CR is not a fence
+    /// there (see RejectedReplyTests), and one whose later lines end in CRLF is.
+    @Test func aFenceWithMixedLineEndingsIsRemoved() throws {
+        #expect(try accepted("```json\n\(items(rice))\r\n```").count == 1)
+        #expect(try accepted("```\n\r\n\(items(rice))\r\n\r\n```").count == 1)
     }
 }
 
@@ -88,6 +103,9 @@ private func jsonString(_ text: String) -> String {
         "```json {\"items\": []} ```",
         "```\n```",
         "```json\n{\"items\": []}\n```\n```json\n{\"items\": []}\n```",
+        "```json\r\n{\"items\": []}\r\n```",
+        "```\r\n{\"items\": []}\r\n```",
+        "```json\r{\"items\": []}\r```",
         "Here you go: {\"items\": []}",
         "{\"items\": []} Hope this helps.",
         "{\"items\": []}\n{\"items\": []}",
@@ -103,6 +121,10 @@ private func jsonString(_ text: String) -> String {
     ])
     func notJSON(text: String) throws {
         #expect(try rejection(text) == .notJSON)
+    }
+
+    @Test func aHundredThousandOpenBracketsAreNotJSON() throws {
+        #expect(try rejection(String(repeating: "[", count: 100_000)) == .notJSON)
     }
 
     @Test func proseBeforeTheObjectIsAnErrorEvenIfTheObjectIsValid() throws {
@@ -180,7 +202,7 @@ private func jsonString(_ text: String) -> String {
         #expect(name.description == "bad_value: items[0].name is not valid: expected a string of 1 to 100 characters after surrounding whitespace is removed, saw a string of 0 characters")
 
         let prose = try #require(try read("Sure! " + items(rice)).items.failure)
-        #expect(prose.reason == .notJSON && prose.description.hasPrefix("not_json: the reply is not one JSON object: expected one JSON object, saw 'S' where a value should start at offset 0 of \"Sure!"))
+        #expect(prose.reason == .notJSON && prose.description.hasPrefix("not_json: the reply is not one JSON object: expected one JSON object, saw 'S' where a value should start at byte 0 of \"Sure!"))
     }
 }
 

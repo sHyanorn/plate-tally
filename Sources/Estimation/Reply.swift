@@ -48,7 +48,10 @@ extension Estimation {
     /// Removes one surrounding code fence: a first line of three backticks with an optional
     /// language word, and a last line of three backticks. Any other wrapper stays and fails to parse.
     static func unfence(_ text: String) -> String {
-        let lines = text.split(separator: "\n", omittingEmptySubsequences: false)
+        // Lines end at the scalar \n, as in the evaluation. Swift reads "\r\n" as one Character, so a
+        // split on Characters would not see the end of a line that has it.
+        let lines = text.unicodeScalars.split(separator: "\n", omittingEmptySubsequences: false)
+            .map { String($0) }
         guard lines.count >= 3, lines[lines.count - 1] == "```", lines[0].hasPrefix("```"),
             lines[0].dropFirst(3).allSatisfy({ $0.isLetter || $0.isNumber || $0 == "_" })
         else { return text }

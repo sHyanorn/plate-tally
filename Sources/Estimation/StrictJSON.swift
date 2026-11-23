@@ -11,6 +11,7 @@ enum JSONValue: Equatable {
 }
 
 struct JSONSyntaxError: Error, Equatable {
+    /// A byte offset into the UTF-8 text.
     let offset: Int
     let message: String
 }
@@ -19,6 +20,9 @@ struct JSONSyntaxError: Error, Equatable {
 /// The readers of the standard library differ on Linux (one keeps the first and the other the last
 /// of a repeated key, and one reads a boolean as a number). This parser does not depend on them.
 enum StrictJSON {
+    // A valid reply nests 3 levels; 16 lets a wrong shape reach the R5 checks and stops a stack overflow.
+    static let maxDepth = 16
+
     static func parse(_ text: String) throws(JSONSyntaxError) -> JSONValue {
         var reader = Reader(bytes: Array(text.utf8))
         reader.skipWhitespace()
@@ -51,6 +55,7 @@ private enum Byte {
 private struct Reader {
     let bytes: [UInt8]
     var position = 0
+    var depth = 0
 
     var atEnd: Bool { position >= bytes.count }
     var peek: UInt8? { atEnd ? nil : bytes[position] }
@@ -94,7 +99,16 @@ private struct Reader {
         position += expected.count
     }
 
+    mutating func enter() throws(JSONSyntaxError) {
+        depth += 1
+        guard depth <= StrictJSON.maxDepth else {
+            throw error("nesting deeper than \(StrictJSON.maxDepth) levels")
+        }
+    }
+
     mutating func object() throws(JSONSyntaxError) -> JSONValue {
+        try enter()
+        defer { depth -= 1 }
         position += 1
         var members: [String: JSONValue] = [:]
         skipWhitespace()
@@ -127,6 +141,8 @@ private struct Reader {
     }
 
     mutating func array() throws(JSONSyntaxError) -> JSONValue {
+        try enter()
+        defer { depth -= 1 }
         position += 1
         var elements: [JSONValue] = []
         skipWhitespace()

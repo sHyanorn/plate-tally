@@ -4,12 +4,16 @@ import Testing
 @testable import Estimation
 
 @Suite struct PromptTests {
-    /// D009 measured the prompt in eval/prompts/p2.txt, so the app must send that text.
-    @Test func equalsTheMeasuredFile() throws {
+    /// D009 measured the prompt in eval/prompts/p2.txt, so the app must send those bytes. The
+    /// evaluation strips the file's surrounding whitespace. Strings are not compared: Swift calls
+    /// two canonically equivalent spellings equal, and the API sees bytes.
+    @Test func equalsTheMeasuredFileByteForByte() throws {
         let file = repoRoot().appendingPathComponent("eval/prompts/p2.txt")
-        let text = String(decoding: try Data(contentsOf: file), as: UTF8.self)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        #expect(Prompt.p2 == text)
+        var bytes = ArraySlice(try Data(contentsOf: file))
+        let space: Set<UInt8> = [0x20, 0x09, 0x0A, 0x0D]
+        while let first = bytes.first, space.contains(first) { bytes.removeFirst() }
+        while let last = bytes.last, space.contains(last) { bytes.removeLast() }
+        #expect(Array(Prompt.p2.utf8) == Array(bytes))
     }
 }
 

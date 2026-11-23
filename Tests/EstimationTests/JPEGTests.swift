@@ -87,7 +87,12 @@ private let xmp = segment(0xE1, Array("http://ns.adobe.com/xap/1.0/\0<x:xmpmeta/
         ("no marker prefix", jpeg([0x00, 0x01]), .malformed("expected a marker prefix FF", at: 2)),
         ("a restart marker in the header", jpeg([0xFF, 0xD0]), .malformed("the marker FF D0 outside the image data", at: 2)),
         ("a cut segment", Data(jpeg(jfif).dropLast(3)), .truncated(at: 2)),
-        ("a segment shorter than its length field", jpeg([0xFF, 0xE0, 0x00, 0x01]), .truncated(at: 2)),
+        ("a length field that is cut off", jpeg([0xFF, 0xE0, 0x00]), .truncated(at: 2)),
+        ("a segment longer than the file", jpeg([0xFF, 0xE0, 0x00, 0x20, 1, 2]), .truncated(at: 2)),
+        ("a segment length of 1", jpeg([0xFF, 0xE0, 0x00, 0x01]),
+            .malformed("a segment length of 1, below the minimum of 2", at: 2)),
+        ("a segment length of 0", jpeg([0xFF, 0xE0, 0x00, 0x00]),
+            .malformed("a segment length of 0, below the minimum of 2", at: 2)),
         ("no end marker", Data(cleanJPEG().dropLast(2)), .truncated(at: cleanJPEG().count - 2)),
     ])
     func rejectsBrokenFiles(name: String, data: Data, error: JPEGError) {
@@ -96,14 +101,27 @@ private let xmp = segment(0xE1, Array("http://ns.adobe.com/xap/1.0/\0<x:xmpmeta/
 
     @Test func rejectsAFileWithoutFrameHeaderOrScan() {
         let noFrame = jpeg(jfif, quantization, scan, endOfImage)
-        #expect(throws: JPEGError.self) { try JPEGImage(encoded: noFrame) }
+        #expect(throws: JPEGError.malformed("no frame header", at: noFrame.count - 2)) {
+            try JPEGImage(encoded: noFrame)
+        }
         let noScan = jpeg(jfif, quantization, frame(width: 4, height: 3), endOfImage)
-        #expect(throws: JPEGError.self) { try JPEGImage(encoded: noScan) }
+        #expect(throws: JPEGError.malformed("no image data", at: noScan.count - 2)) {
+            try JPEGImage(encoded: noScan)
+        }
     }
 
     @Test func rejectsAFrameWithoutSize() {
-        #expect(throws: JPEGError.self) {
+        let frameOffset = 2 + jfif.count + quantization.count
+        #expect(throws: JPEGError.malformed("a frame of 0 x 3 px", at: frameOffset)) {
             try JPEGImage(encoded: jpeg(jfif, quantization, frame(width: 0, height: 3), scan, endOfImage))
         }
+    }
+
+    @Test func aShortSegmentLengthIsMalformedNotCutOff() {
+        let error = #expect(throws: JPEGError.self) { try JPEGImage(encoded: jpeg([0xFF, 0xE0, 0x00, 0x01])) }
+        #expect(
+            error?.description
+                == "the JPEG is malformed: expected markers and segments as the format defines them, saw a segment length of 1, below the minimum of 2 at offset 2"
+        )
     }
 }
