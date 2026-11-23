@@ -60,7 +60,7 @@ final class ScreenshotTests: XCTestCase {
             XCTAssertTrue(app.descendants(matching: .any)["Analyzing meal"].waitForExistence(timeout: 5))
             snap("analyzing", look)
 
-            XCTAssertTrue(app.navigationBars["New meal"].waitForExistence(timeout: 10))
+            XCTAssertTrue(app.staticTexts["meal-title"].waitForExistence(timeout: 10))
             XCTAssertEqual(app.staticTexts["meal-total"].label, "≈ 360 kcal")
             XCTAssertTrue(hasText("Analysis cost", in: app))
             XCTAssertTrue(hasText("$0.0035", in: app))
@@ -74,17 +74,22 @@ final class ScreenshotTests: XCTestCase {
             replaceText(of: grams, with: "300")
             snap("item-edit-scaled", look)
             XCTAssertEqual(app.textFields["item-kcal"].value as? String, "390")
-            app.navigationBars["Item"].buttons["Save"].tap()
-            XCTAssertTrue(app.navigationBars["New meal"].waitForExistence(timeout: 5))
+            // In kJ the field shows 390 x 4.18 and the pill gives the kcal back.
+            app.buttons["kJ"].tap()
+            XCTAssertEqual(app.textFields["item-kcal"].value as? String, "1630.2")
+            XCTAssertEqual(app.staticTexts["kcal-equivalent"].label, "= 390 kcal")
+            snap("item-edit-kj", look)
+            app.buttons["item-save"].tap()
+            XCTAssertTrue(app.staticTexts["meal-title"].waitForExistence(timeout: 5))
             XCTAssertEqual(app.staticTexts["meal-total"].label, "≈ 555 kcal")
 
-            app.navigationBars["New meal"].buttons["Save"].tap()
+            app.buttons["meal-save"].tap()
             XCTAssertTrue(app.staticTexts["day-title"].waitForExistence(timeout: 10))
             XCTAssertEqual(app.staticTexts["intake"].label, "≈ 555 kcal")
 
             // A saved meal opens with its items and is deleted after a confirmation.
             app.descendants(matching: .any).matching(identifier: "meal-row").firstMatch.tap()
-            XCTAssertTrue(app.navigationBars["Meal"].waitForExistence(timeout: 5))
+            XCTAssertTrue(app.staticTexts["meal-title"].waitForExistence(timeout: 5))
             snap("meal-stored", look)
             app.buttons["delete-meal"].tap()
             XCTAssertTrue(app.buttons["Delete"].waitForExistence(timeout: 5))
@@ -125,8 +130,8 @@ final class ScreenshotTests: XCTestCase {
         eachAppearance(["-ui-key", "-ui-limit", "1"]) { app, look in
             app.buttons["add-meal"].tap()
             app.buttons["Choose photo"].tap()
-            XCTAssertTrue(app.navigationBars["New meal"].waitForExistence(timeout: 10))
-            app.navigationBars["New meal"].buttons["Save"].tap()
+            XCTAssertTrue(app.staticTexts["meal-title"].waitForExistence(timeout: 10))
+            app.buttons["meal-save"].tap()
             XCTAssertTrue(app.staticTexts["day-title"].waitForExistence(timeout: 10))
 
             app.buttons["add-meal"].tap()

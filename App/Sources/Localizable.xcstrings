@@ -18,6 +18,23 @@
         }
       }
     },
+    "= %@ kcal": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "= %@ kcal"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "= %@ kcal"
+          }
+        }
+      }
+    },
     "API key": {
       "extractionState": "manual",
       "localizations": {
@@ -562,19 +579,36 @@
         }
       }
     },
-    "Energy (kcal)": {
+    "Energy": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Energy (kcal)"
+            "value": "Energy"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "能量（kcal）"
+            "value": "能量"
+          }
+        }
+      }
+    },
+    "Energy unit": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Energy unit"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "能量单位"
           }
         }
       }

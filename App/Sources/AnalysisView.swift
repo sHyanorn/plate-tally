@@ -24,7 +24,7 @@ struct AnalysisView: View {
                 .resizable()
                 .scaledToFit()
                 .frame(maxHeight: 240)
-                .clipShape(.rect(cornerRadius: 16))
+                .clipShape(.rect(cornerRadius: Metrics.cardRadius))
                 .accessibilityLabel("Photo of the meal")
             switch phase {
             case .running:
@@ -34,7 +34,10 @@ struct AnalysisView: View {
             }
             Spacer()
         }
-        .padding()
+        .padding(Metrics.margin)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Palette.canvas)
+        .foregroundStyle(Palette.ink)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 if isRunning {
@@ -55,19 +58,19 @@ struct AnalysisView: View {
 
     private func failure(_ problem: Problem, cost: Decimal?) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Analysis failed").font(.headline)
+            Text("Analysis failed").textRole(.name)
             if let code = problem.code {
-                Text(code).font(.caption.monospaced()).foregroundStyle(.secondary)
+                Text(code).font(.caption.monospaced()).foregroundStyle(Palette.ink2)
             }
             Text(problem.message)
             if let cost {
-                Text("Billed \(usd(cost))").foregroundStyle(.secondary)
+                Text("Billed \(usd(cost))").foregroundStyle(Palette.ink2)
             }
             Button("Try again") {
                 phase = .running
                 attempt += 1
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(PillButtonStyle())
             .padding(.top, 8)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

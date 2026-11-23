@@ -1,3 +1,4 @@
+import Core
 import SwiftUI
 
 /// A number with its sign raised in front of it, as on a price tag: "≈" for an estimate, "=" for a conversion.
@@ -78,12 +79,21 @@ struct EnergyTag: View {
     }
 }
 
-/// The background of a card in a list: the surface, rounded 28, inside the margins of the screen.
+/// The background of a card in a list: the surface, rounded 28, inside the margins of the screen. Rows that
+/// make one card together leave the corners square where they meet.
 struct CardBackground: View {
+    var roundsTop = true
+    var roundsBottom = true
+
     var body: some View {
-        RoundedRectangle(cornerRadius: Metrics.cardRadius)
-            .fill(Palette.surface)
-            .padding(.horizontal, Metrics.margin)
+        UnevenRoundedRectangle(
+            topLeadingRadius: roundsTop ? Metrics.cardRadius : 0,
+            bottomLeadingRadius: roundsBottom ? Metrics.cardRadius : 0,
+            bottomTrailingRadius: roundsBottom ? Metrics.cardRadius : 0,
+            topTrailingRadius: roundsTop ? Metrics.cardRadius : 0
+        )
+        .fill(Palette.surface)
+        .padding(.horizontal, Metrics.margin)
     }
 }
 
@@ -97,10 +107,10 @@ extension View {
 
     /// A list row on a card of its own, within the margins of the screen. The content pads itself, so that a
     /// button fills the whole card.
-    func cardListRow() -> some View {
+    func cardListRow(roundsTop: Bool = true, roundsBottom: Bool = true) -> some View {
         listRowInsets(EdgeInsets(top: 0, leading: Metrics.margin, bottom: 0, trailing: Metrics.margin))
             .listRowSeparator(.hidden)
-            .listRowBackground(CardBackground())
+            .listRowBackground(CardBackground(roundsTop: roundsTop, roundsBottom: roundsBottom))
     }
 
     /// The padding of content on a card: 16 pt above and below, 20 pt at the sides.
@@ -130,5 +140,95 @@ struct PillButtonStyle: ButtonStyle {
             .animation(
                 reduceMotion ? Animation.easeInOut(duration: 0.15) : .spring(duration: 0.2, bounce: 0.3),
                 value: pressed)
+    }
+}
+
+/// The top of a sheet: its title, 28 pt heavy, and one control at the trailing end. It stays in place above the
+/// content, so the control is in reach whatever the content scrolls to.
+struct SheetHeader<Trailing: View>: View {
+    let title: LocalizedStringKey
+    let titleID: String
+    @ViewBuilder let trailing: Trailing
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text(title)
+                .textRole(.sheetTitle)
+                .lineLimit(2)
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier(titleID)
+            Spacer(minLength: 0)
+            trailing
+        }
+        .padding(.top, 22)
+        .padding(.bottom, 12)
+        .padding(.horizontal, Metrics.margin)
+        .background(Palette.canvas)
+    }
+}
+
+/// The round button that closes a sheet without saving.
+struct CloseButton: View {
+    let action: () -> Void
+
+    @ScaledMetric(relativeTo: .body) private var side: CGFloat = 40
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "xmark")
+                .font(.system(.body, design: .rounded, weight: .bold))
+                .frame(width: side, height: side)
+                .background(Palette.surface2, in: .circle)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Close")
+    }
+}
+
+/// A field on a card of its own: the label above, the field below, an ink outline while it has the focus.
+struct InputCard<Content: View>: View {
+    let label: LocalizedStringKey
+    let focused: Bool
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label).textRole(.caption).foregroundStyle(Palette.ink2)
+            content
+        }
+        .inputCardStyle(focused: focused)
+    }
+}
+
+extension View {
+    func inputCardStyle(focused: Bool) -> some View {
+        frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .background(Palette.surface, in: .rect(cornerRadius: Metrics.inputRadius))
+            .overlay {
+                if focused {
+                    RoundedRectangle(cornerRadius: Metrics.inputRadius).strokeBorder(Palette.ink, lineWidth: 2)
+                }
+            }
+    }
+
+    /// A sheet of the design: the canvas behind it, 38 pt corners, the large detent only.
+    func designSheet() -> some View {
+        presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+            .presentationCornerRadius(Metrics.sheetRadius)
+            .presentationBackground(Palette.canvas)
+    }
+}
+
+/// A problem of a form in its three parts (R26), in ink: the design has no alarm colour.
+struct ProblemText: View {
+    let problem: Problem
+
+    var body: some View {
+        Label(problem.message, systemImage: "exclamationmark.circle")
+            .textRole(.caption)
+            .padding(.horizontal, 4)
     }
 }

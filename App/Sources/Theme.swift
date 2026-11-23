@@ -26,15 +26,22 @@ enum Metrics {
     static let tagRadius: CGFloat = 32
     static let tagHeight: CGFloat = 132
     static let pillHeight: CGFloat = 58
+    static let inputRadius: CGFloat = 20
+    static let sheetRadius: CGFloat = 38
 }
 
 /// The text of the design: the rounded system font at a fixed size that grows and shrinks with Dynamic Type
 /// as the text style it follows does.
 enum TextRole {
     case pageTitle
+    case sheetTitle
     case tagNumber
     case sideNumber
     case cardNumber
+    case rowNumber
+    case inputNumber
+    case inputText
+    case inputUnit
     case name
     case label
     case button
@@ -44,9 +51,14 @@ enum TextRole {
     var size: CGFloat {
         switch self {
         case .pageTitle: 40
+        case .sheetTitle: 28
         case .tagNumber: 58
         case .sideNumber: 28
         case .cardNumber: 24
+        case .rowNumber: 19
+        case .inputNumber: 44
+        case .inputText: 22
+        case .inputUnit: 18
         case .name: 17
         case .label: 15
         case .button: 18
@@ -57,17 +69,18 @@ enum TextRole {
 
     var weight: Font.Weight {
         switch self {
-        case .tagNumber, .sideNumber, .cardNumber: .black
-        case .pageTitle, .name, .label, .button, .unit: .heavy
+        case .tagNumber, .sideNumber, .cardNumber, .rowNumber, .inputNumber, .inputText: .black
+        case .pageTitle, .sheetTitle, .name, .label, .button, .unit, .inputUnit: .heavy
         case .caption: .bold
         }
     }
 
     var style: Font.TextStyle {
         switch self {
-        case .pageTitle, .tagNumber: .largeTitle
-        case .sideNumber, .cardNumber: .title
-        case .name, .button: .headline
+        case .pageTitle, .tagNumber, .inputNumber: .largeTitle
+        case .sheetTitle, .sideNumber, .cardNumber: .title
+        case .inputText: .title2
+        case .name, .button, .rowNumber, .inputUnit: .headline
         case .label: .subheadline
         case .caption, .unit: .footnote
         }

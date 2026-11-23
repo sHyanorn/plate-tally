@@ -9,19 +9,57 @@ private struct ItemTarget: Identifiable {
     var id: Int { index ?? -1 }
 }
 
+/// One item on the card of items, with a hairline below it.
 private struct ItemRow: View {
     let item: FoodItem
 
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.name)
-                Text(gramsText(item.grams)).font(.subheadline).foregroundStyle(.secondary)
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(item.name).textRole(.name).lineLimit(1)
+                Text(gramsText(item.grams)).textRole(.caption).foregroundStyle(Palette.ink2)
             }
-            Spacer()
-            Text(kcalText(item.kcal)).monospacedDigit()
+            Spacer(minLength: 8)
+            Text(kcalText(item.kcal)).textRole(.rowNumber)
+        }
+        .frame(minHeight: 64)
+        .padding(.horizontal, 20)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Palette.line).frame(height: 1).padding(.horizontal, 20)
         }
         .contentShape(.rect)
+    }
+}
+
+/// The photo of a draft, which is never stored (R11), with the cost of its analysis on it (R17).
+private struct PhotoCard: View {
+    let photo: Photo
+    let cost: Decimal?
+
+    var body: some View {
+        Color.clear
+            .frame(height: 196)
+            .overlay {
+                Image(uiImage: photo.thumbnail)
+                    .resizable()
+                    .scaledToFill()
+                    .accessibilityLabel("Photo of the meal")
+            }
+            .clipShape(.rect(cornerRadius: Metrics.cardRadius))
+            .overlay(alignment: .bottomLeading) {
+                if let cost {
+                    HStack(spacing: 4) {
+                        Text("Analysis cost")
+                        Text(verbatim: usd(cost))
+                    }
+                    .textRole(.caption)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .frame(minHeight: 30)
+                    .background(Color.black.opacity(0.7), in: .capsule)
+                    .padding(12)
+                }
+            }
     }
 }
 
@@ -30,6 +68,7 @@ private struct ItemRow: View {
 struct MealForm: View {
     let model: AppModel
     let meal: Meal
+    let title: LocalizedStringKey
     var photo: Photo?
     var cost: Decimal?
     let apply: @MainActor (Meal) throws(Problem) -> Void
@@ -39,47 +78,60 @@ struct MealForm: View {
 
     var body: some View {
         List {
+            Text(title)
+                .textRole(.pageTitle)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier("meal-title")
+                .padding(.bottom, Metrics.gap)
+                .plainListRow()
             if let photo {
-                Section {
-                    Image(uiImage: photo.thumbnail)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxHeight: 200)
-                        .clipShape(.rect(cornerRadius: 12))
-                        .frame(maxWidth: .infinity)
-                        .listRowBackground(Color.clear)
-                        .accessibilityLabel("Photo of the meal")
-                    if let cost {
-                        LabeledContent("Analysis cost", value: usd(cost))
-                    }
-                }
+                PhotoCard(photo: photo, cost: cost)
+                    .padding(.bottom, Metrics.gap)
+                    .plainListRow()
             }
-            Section {
-                DatePicker("Time", selection: time)
-            }
-            Section("Items") {
-                ForEach(meal.items.indices, id: \.self) { index in
-                    Button {
-                        target = ItemTarget(index: index)
-                    } label: {
-                        ItemRow(item: meal.items[index])
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("item-\(index)")
+            EnergyTag(label: "Total", kcal: meal.totalKcal, numberID: "meal-total", minHeight: 72)
+                .padding(.bottom, Metrics.gap)
+                .plainListRow()
+            ForEach(meal.items.indices, id: \.self) { index in
+                Button {
+                    target = ItemTarget(index: index)
+                } label: {
+                    ItemRow(item: meal.items[index])
                 }
-                .onDelete { remove(at: $0) }
-                Button("Add item", systemImage: "plus") { target = ItemTarget(index: nil) }
-                    .accessibilityIdentifier("add-item")
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("item-\(index)")
+                .cardListRow(roundsTop: index == 0, roundsBottom: false)
             }
-            Section {
-                HStack {
-                    Text("Total")
-                    Spacer()
-                    Text(kcalText(meal.totalKcal))
-                        .fontWeight(.semibold)
-                        .monospacedDigit()
-                        .accessibilityIdentifier("meal-total")
+            .onDelete { remove(at: $0) }
+            Button {
+                target = ItemTarget(index: nil)
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "plus")
+                        .font(.system(.subheadline, design: .rounded, weight: .heavy))
+                        .frame(width: 30, height: 30)
+                        .foregroundStyle(Palette.onInk)
+                        .background(Palette.ink, in: .circle)
+                        .accessibilityHidden(true)
+                    Text("Add item").textRole(.label)
                 }
+                .frame(maxWidth: .infinity, minHeight: 58, alignment: .leading)
+                .padding(.horizontal, 20)
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("add-item")
+            .cardListRow(roundsTop: meal.items.isEmpty, roundsBottom: true)
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(Palette.canvas)
+        .foregroundStyle(Palette.ink)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                DatePicker("Time", selection: time).labelsHidden()
             }
         }
         .sheet(item: $target) { edited in
@@ -145,16 +197,20 @@ struct DraftMealView: View {
     }
 
     var body: some View {
-        MealForm(model: model, meal: meal, photo: photo, cost: cost) { meal = $0 }
-            .navigationTitle("New meal")
-            .navigationBarTitleDisplayMode(.inline)
+        MealForm(model: model, meal: meal, title: "New meal", photo: photo, cost: cost) { meal = $0 }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { confirmingDiscard = true }
+                    Button("Cancel", systemImage: "xmark") { confirmingDiscard = true }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save", action: save)
+            }
+            .safeAreaBar(edge: .bottom) {
+                Button(action: save) {
+                    Text("Save").frame(maxWidth: .infinity)
                 }
+                .buttonStyle(PillButtonStyle())
+                .accessibilityIdentifier("meal-save")
+                .padding(.horizontal, Metrics.margin)
+                .padding(.vertical, 8)
             }
             .confirmationDialog("Discard this meal?", isPresented: $confirmingDiscard, titleVisibility: .visible) {
                 Button("Discard", role: .destructive) { onDiscard() }
@@ -184,9 +240,9 @@ struct StoredMealView: View {
 
     var body: some View {
         if let meal = model.ledger.meals.first(where: { $0.id == id }) {
-            MealForm(model: model, meal: meal) { (next: Meal) throws(Problem) in try model.replace(next) }
-                .navigationTitle("Meal")
-                .navigationBarTitleDisplayMode(.inline)
+            MealForm(model: model, meal: meal, title: "Meal") { (next: Meal) throws(Problem) in
+                try model.replace(next)
+            }
                 .toolbar {
                     ToolbarItem(placement: .destructiveAction) {
                         Button("Delete meal", systemImage: "trash", role: .destructive) { confirmingDelete = true }

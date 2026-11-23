@@ -32,6 +32,8 @@ struct DayView: View {
 
     private var day: LocalDay { model.localTime(of: selected)?.day ?? model.today }
     private var meals: [Meal] { model.meals(on: day) }
+    /// Grows with every saved item, whichever screen saved it, and with nothing else.
+    private var storedItems: Int { model.ledger.meals.reduce(0) { $0 + $1.items.count } }
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -149,6 +151,7 @@ struct DayView: View {
             "Could not save",
             Binding(main: { model.storeProblem }, set: { if $0 == nil { model.dismissStoreProblem() } })
         )
+        .sensoryFeedback(.success, trigger: storedItems) { old, new in new > old }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
             model.refreshKey()
