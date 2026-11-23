@@ -7,7 +7,7 @@ import Testing
 private func editing(_ item: FoodItem = rice, grams: String? = nil, kcal: String? = nil, name: String? = nil) -> ItemEditor {
     var editor = ItemEditor(editing: item)
     if let grams { editor.gramsText = grams }
-    if let kcal { editor.typedKcalText = kcal }
+    if let kcal { editor.typeEnergy(kcal) }
     if let name { editor.name = name }
     return editor
 }
@@ -17,7 +17,7 @@ private func editing(_ item: FoodItem = rice, grams: String? = nil, kcal: String
         let editor = editing()
         #expect(editor.name == "rice")
         #expect(editor.gramsText == "150")
-        #expect(editor.kcalText == "195")
+        #expect(editor.energyText == "195")
         #expect(editor.problem == nil)
         #expect(editor.item() == .success(rice))
     }
@@ -25,19 +25,19 @@ private func editing(_ item: FoodItem = rice, grams: String? = nil, kcal: String
     /// R10: a change of the grams scales the kcal in proportion.
     @Test func theEnergyFollowsTheGramsUntilItIsTyped() {
         let editor = editing(grams: "300")
-        #expect(editor.kcalText == "390")
+        #expect(editor.energyText == "390")
         #expect(editor.item() == .success(FoodItem(name: "rice", grams: 300, kcal: 390)))
     }
 
     @Test func theFieldShowsOneDecimalButTheItemKeepsTheScaledValue() throws {
         let editor = editing(grams: "7")
-        #expect(editor.kcalText == "9.1")
+        #expect(editor.energyText == "9.1")
         #expect(try editor.item().get().kcal == 195 * 7 / 150)
     }
 
     @Test func aTypedEnergyWinsOverTheScaling() {
         let editor = editing(grams: "300", kcal: "400")
-        #expect(editor.kcalText == "400")
+        #expect(editor.energyText == "400")
         #expect(editor.item() == .success(FoodItem(name: "rice", grams: 300, kcal: 400)))
     }
 
@@ -130,7 +130,7 @@ private func editing(_ item: FoodItem = rice, grams: String? = nil, kcal: String
 @Suite struct AddingAnItemTests {
     @Test func aNewFormIsEmptyAndMakesNoItem() {
         let editor = ItemEditor()
-        #expect(editor.kcalText == "")
+        #expect(editor.energyText == "")
         #expect(editor.problem == nil)
         guard case .failure = editor.item() else { Issue.record("an empty form made an item"); return }
     }
@@ -141,7 +141,7 @@ private func editing(_ item: FoodItem = rice, grams: String? = nil, kcal: String
         editor.gramsText = "80"
         guard case .failure = editor.item() else { Issue.record("no energy typed, yet an item"); return }
         #expect(editor.problem == nil)
-        editor.typedKcalText = "30"
+        editor.typeEnergy("30")
         #expect(editor.item() == .success(FoodItem(name: "salad", grams: 80, kcal: 30)))
     }
 
@@ -149,10 +149,10 @@ private func editing(_ item: FoodItem = rice, grams: String? = nil, kcal: String
         var editor = ItemEditor()
         editor.name = "salad"
         editor.gramsText = "0"
-        editor.typedKcalText = "30"
+        editor.typeEnergy("30")
         #expect(editor.problem?.what == "the grams are out of range")
         editor.gramsText = "80"
-        editor.typedKcalText = "6000"
+        editor.typeEnergy("6000")
         #expect(editor.problem?.what == "the kcal are out of range")
     }
 }
@@ -169,7 +169,7 @@ private func editing(_ item: FoodItem = rice, grams: String? = nil, kcal: String
         var editor = ItemEditor()
         editor.name = "salad"
         editor.gramsText = "80"
-        editor.typedKcalText = "30"
+        editor.typeEnergy("30")
         let next = try editor.applied(to: meal([rice]), at: nil).get()
         #expect(next.items == [rice, FoodItem(name: "salad", grams: 80, kcal: 30)])
     }
@@ -178,7 +178,7 @@ private func editing(_ item: FoodItem = rice, grams: String? = nil, kcal: String
         var editor = ItemEditor()
         editor.name = "one more"
         editor.gramsText = "1"
-        editor.typedKcalText = "1"
+        editor.typeEnergy("1")
         let full = try meal(Array(repeating: rice, count: 20))
         guard case .failure(let problem) = editor.applied(to: full, at: nil) else { Issue.record("20 items grew to 21"); return }
         #expect(problem.what == "the meal has too many items")
@@ -196,5 +196,69 @@ private func editing(_ item: FoodItem = rice, grams: String? = nil, kcal: String
         let start = try meal([rice])
         guard case .failure = editing(grams: "abc").applied(to: start, at: 0) else { Issue.record("invalid form applied"); return }
         #expect(start.items == [rice])
+    }
+}
+
+@Suite struct KilojouleFieldTests {
+    private func inKilojoules(_ item: FoodItem = rice) -> ItemEditor {
+        var editor = ItemEditor(editing: item)
+        editor.unit = .kJ
+        return editor
+    }
+
+    @Test func theFieldShowsTheEnergyOfTheItemInKilojoulesAndItsKcal() {
+        let editor = inKilojoules()
+        #expect(editor.energyText == "815.1")
+        #expect(editor.kcalEquivalent == 195)
+        #expect(editor.energyIsEstimate)
+        #expect(editor.item() == .success(rice))
+    }
+
+    @Test func typedKilojoulesAreStoredAsKcalWithoutRounding() {
+        var editor = inKilojoules()
+        editor.typeEnergy("1000")
+        #expect(editor.energyText == "1000")
+        #expect(editor.kcalEquivalent == 1000 / 4.18)
+        #expect(!editor.energyIsEstimate)
+        #expect(editor.item() == .success(FoodItem(name: "rice", grams: 150, kcal: 1000 / 4.18)))
+    }
+
+    @Test func aChangeOfUnitChangesNoItemAndKeepsTheTypedText() {
+        var editor = ItemEditor(editing: rice)
+        editor.typeEnergy("200")
+        editor.unit = .kJ
+        #expect(editor.energyText == "836")
+        #expect(editor.item() == .success(FoodItem(name: "rice", grams: 150, kcal: 200)))
+        editor.unit = .kcal
+        #expect(editor.energyText == "200")
+        #expect(editor.kcalEquivalent == nil)
+    }
+
+    @Test func kilojoulesUpToTheBoundOfFiveThousandKcalAreAccepted() {
+        var editor = inKilojoules()
+        editor.typeEnergy("20900")
+        #expect(editor.item() == .success(FoodItem(name: "rice", grams: 150, kcal: 5000)))
+        editor.typeEnergy("20901")
+        #expect(editor.problem?.what == "the kcal are out of range")
+        #expect(editor.problem?.saw == plainNumber(20901 / 4.18))
+    }
+
+    @Test func kilojoulesThatAreNotANumberNameTheEnergyField() {
+        var editor = inKilojoules()
+        editor.typeEnergy("12x")
+        #expect(editor.problem?.what == "Energy is not a number")
+        #expect(editor.energyText == "12x")
+        #expect(editor.kcalEquivalent == nil)
+    }
+
+    @Test func aNewItemTakesItsEnergyInKilojoules() {
+        var editor = ItemEditor()
+        editor.unit = .kJ
+        #expect(editor.energyText == "")
+        #expect(!editor.energyIsEstimate)
+        editor.name = "salad"
+        editor.gramsText = "80"
+        editor.typeEnergy("125.4")
+        #expect(editor.item() == .success(FoodItem(name: "salad", grams: 80, kcal: 125.4 / 4.18)))
     }
 }

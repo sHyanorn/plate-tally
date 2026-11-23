@@ -28,4 +28,10 @@ public enum Number {
         else { throw NumberError(field: field, text: text) }
         return value
     }
+
+    /// A number for a field that shows a computed value: one decimal, a point and no grouping, so `parse`
+    /// reads it back if the user edits it. Grouping would not survive: "1,250" parses as 1.25.
+    public static func fieldText(_ value: Double) -> String {
+        plainNumber((value * 10).rounded() / 10)
+    }
 }

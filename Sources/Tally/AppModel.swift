@@ -94,6 +94,20 @@ public final class AppModel {
         ledger = next
     }
 
+    /// The last meal of the day by time, which the converter offers as its target.
+    public func latestMeal(on day: LocalDay) -> Meal? { meals(on: day).last }
+
+    /// Adds one item to the meal with the id, or to a new meal at the time of the clock when the id is nil.
+    public func add(_ item: FoodItem, toMealWithID id: UUID?) throws(Problem) {
+        guard let id else { return try add(try adding(item, to: draft(items: []))) }
+        guard let meal = ledger.meals.first(where: { $0.id == id }) else { throw Problem(LedgerError.unknownID(id)) }
+        try replace(try adding(item, to: meal))
+    }
+
+    private func adding(_ item: FoodItem, to meal: Meal) throws(Problem) -> Meal {
+        do throws(LedgerError) { return try meal.adding(item) } catch { throw Problem(error) }
+    }
+
     // MARK: Settings and key
 
     public func update(_ next: UserSettings) throws(Problem) {

@@ -262,3 +262,48 @@ private let testVector = {
         #expect(model.storeProblem == nil)
     }
 }
+
+@MainActor @Suite struct AddingOneItemTests {
+    private let bar = FoodItem(name: "Muesli bar", grams: 35, kcal: 1250 / 4.18)
+
+    @Test func theLatestMealOfTheDayIsTheLastByTime() throws {
+        let model = try Rig().model()
+        #expect(model.latestMeal(on: model.today) == nil)
+        let lunch = try meal("2026-11-23T12:05", id: 2)
+        try model.add(lunch)
+        try model.add(meal("2026-11-23T08:10", id: 1))
+        try model.add(meal("2026-11-22T21:00", id: 3))
+        #expect(model.latestMeal(on: model.today) == lunch)
+    }
+
+    @Test func anItemJoinsTheMealWithTheIdAndIsThereAfterARestart() throws {
+        let rig = try Rig()
+        let model = try rig.model()
+        let lunch = try meal("2026-11-23T12:05")
+        try model.add(lunch)
+        try model.add(bar, toMealWithID: lunch.id)
+        #expect(model.ledger.meals.map(\.items) == [lunch.items + [bar]])
+        #expect(try rig.model().intake(on: model.today) == 195 + 1250 / 4.18)
+    }
+
+    @Test func withoutAnIdTheItemStartsAMealAtTheTimeOfTheClock() throws {
+        let model = try Rig().model()
+        try model.add(bar, toMealWithID: nil)
+        #expect(model.ledger.meals.count == 1)
+        #expect(model.ledger.meals.first?.at == model.now)
+        #expect(model.ledger.meals.first?.items == [bar])
+    }
+
+    @Test func aFullMealOrAnUnknownIdRefusesTheItemAndWritesNothing() throws {
+        let rig = try Rig()
+        let model = try rig.model()
+        let full = try meal(items: Array(repeating: bar, count: 20))
+        try model.add(full)
+        let before = try Data(contentsOf: rig.ledgerURL)
+        let error = #expect(throws: Problem.self) { try model.add(bar, toMealWithID: full.id) }
+        #expect(error?.what == "the meal has too many items")
+        #expect(throws: Problem.self) { try model.add(bar, toMealWithID: UUID()) }
+        #expect(model.ledger.meals == [full])
+        #expect(try Data(contentsOf: rig.ledgerURL) == before)
+    }
+}

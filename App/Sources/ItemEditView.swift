@@ -61,7 +61,7 @@ struct ItemEditView: View {
     }
 
     private var energyField: Binding<String> {
-        Binding(main: { editor.kcalText }, set: { editor.typedKcalText = $0 })
+        Binding(main: { editor.energyText }, set: { editor.typeEnergy($0) })
     }
 
     private var isValid: Bool {
