@@ -206,6 +206,10 @@ final class ScreenshotTests: XCTestCase {
             fill(app.textFields["converter-name"], "Muesli bar")
             fill(app.textFields["converter-grams"], "35")
             fill(app.textFields["converter-kj"], "1520")
+            // The checks come before the screenshot, as in English: together they take longer than the half
+            // second the digits roll after the last key.
+            XCTAssertEqual(app.textFields["converter-kcal"].value as? String, "363.6")
+            XCTAssertEqual(app.staticTexts["converter-result"].label, "= 127 kcal")
             snap("converter-100g", look + "-zh")
             app.buttons["converter-add"].tap()
             XCTAssertTrue(app.staticTexts["day-title"].waitForExistence(timeout: 5))
