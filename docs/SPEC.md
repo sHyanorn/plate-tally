@@ -1,6 +1,6 @@
 # Specification
 
-The plan is in TASKS.md. The reasons behind choices are in DECISIONS.md (D001 to D012).
+The plan is in TASKS.md. The reasons behind choices are in DECISIONS.md (D001 to D014).
 
 ## Purpose
 
@@ -26,13 +26,13 @@ The app reports numbers only. It sets no weight goal, computes no deficit and gi
 - R2. Before sending, the app resizes the photo to 1024 px on the long side and re-encodes it as JPEG. A photo whose long side is under 1024 px is not enlarged.
 - R3. The sent image carries no metadata (location, time, device).
 - R4. One analysis is one request: the image and a fixed prompt. The app never sends the profile or past records.
-- R5. The response must be a JSON object with one key, `items`: a list of at most 20 objects with exactly the keys `name`, `grams`, `kcal`. `name` is a string of 1 to 100 characters after surrounding whitespace is removed. `grams` is a number from 1 to 2,000. `kcal` is a number from 0 to 5,000.
+- R5. The response must be a JSON object with one key, `items`: a list of at most 20 objects with exactly the keys `name`, `grams`, `kcal`. `name` is a string of 1 to 100 Unicode scalars after surrounding whitespace is removed. `grams` is a number from 1 to 2,000. `kcal` is a number from 0 to 5,000.
 - R6. Validation rejects. Surrounding whitespace and one surrounding code fence are removed before parsing; nothing else is repaired, trimmed or guessed. A response that fails R5 is shown as an error with its reason code (D012).
-- R7. The app never retries on its own. A new call happens only when the user asks, and it is counted and costed like any call.
+- R7. The app never retries on its own. A new call happens only when the user asks.
 - R8. Each item keeps the kcal that the model gave for its grams. The meal's energy is the sum of its items. The app has no food table (D011).
 - R9. The kcal of an item is the model's estimate until the user types another number. The screen marks the kcal of items and meals as estimates.
-- R10. The user can rename an item, change its grams or its kcal, delete it and add one. An added item needs a name, grams and kcal. Every edit recomputes the meal locally and makes no call. A change of the grams scales the kcal of the item in proportion. An edit keeps the bounds of R5.
-- R11. Saving stores the record: date, time and items (name, grams, kcal). The meal total is the sum of its items. The photo is not stored.
+- R10. The user can rename an item, change its grams or its kcal, delete it and add one. An added item needs a name, grams and kcal. Every edit recomputes the meal locally and makes no call. A change of the grams scales the kcal of the item in proportion, and a change whose scaled kcal fall outside the bounds is refused. An edit keeps the bounds of R5, the limit of 20 items included.
+- R11. Saving stores the record: an id, date, time and items (name, grams, kcal). The meal total is the sum of its items. The photo is not stored.
 - R12. The user can edit or delete a stored record. Totals follow.
 
 ### Expenditure and day view
@@ -44,7 +44,7 @@ The app reports numbers only. It sets no weight goal, computes no deficit and gi
 
 ### Cost and limit
 
-- R17. After each call the app shows its cost in USD, computed from the `usage` fields of the response and the price table.
+- R17. After each call whose response has `usage` fields the app shows its cost in USD, computed from those fields and the price table.
 - R18. The app shows cost totals per day and per month.
 - R19. The daily call limit defaults to 30 and is adjustable in settings. At the limit the app refuses a new analysis and says the limit and the count. Browsing and editing stay available.
 - R20. The user types the API key in settings. The app stores it in the keychain. Without a key the app refuses an analysis and says that a key is missing.
@@ -106,6 +106,7 @@ Cost of a call = input_tokens times input price plus output_tokens times output 
 Source: vendor pricing page, read 2026-11-22. The prices live in one table in the Cost module with the date they were read.
 
 - A call whose response fails validation is costed from its `usage` fields.
+- A call is costed, logged and counted against the daily limit when its response has `usage` fields. A call without them, such as an HTTP error, is none of the three.
 - Day and month are local calendar day and month.
 
 ## Architecture

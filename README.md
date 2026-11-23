@@ -15,7 +15,7 @@ Model calls will be paid by you, per call, with your own API key. The app will s
 
 M0, the accuracy evaluation, is complete. The protocol was registered before any call, and the run is scored in [docs/evaluation-results.md](docs/evaluation-results.md). The lowest mean absolute error is 92.3 kcal (95% interval 82.0 to 103.1), from Claude Sonnet 5.5 with the prompt that lists every food, with 1.7% of calls invalid. D009 chose that model and prompt and decided to go on. The plates are from California cafeterias under a fixed overhead camera, so the number does not carry over to phone photos or home cooking.
 
-The app is one screen that shows its name, version and build number. CI builds and archives it without signing on a hosted macOS runner (App/, .github/workflows/ios-build.yml). Signing and upload to TestFlight follow the enrolment in the paid developer programme. M1, the Swift package, does not wait for it. Core, Energy and Estimation are in, and CI builds and tests the package on Linux. The plan is in [docs/TASKS.md](docs/TASKS.md), the reasons are in [docs/DECISIONS.md](docs/DECISIONS.md).
+The app is one screen that shows its name, version and build number. CI builds and archives it without signing on a hosted macOS runner (App/, .github/workflows/ios-build.yml). Signing and upload to TestFlight follow the enrolment in the paid developer programme. M1, the Swift package, does not wait for it. Core, Energy, Estimation, Ledger and Cost are in, and CI builds and tests the package on Linux. The plan is in [docs/TASKS.md](docs/TASKS.md), the reasons are in [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Evaluation
 
