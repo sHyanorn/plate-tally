@@ -13,7 +13,7 @@ Model calls will be paid by you, per call, with your own API key. The app will s
 
 ## State
 
-M0, the accuracy evaluation, is in progress. The protocol is registered. There is no result yet and no app code yet. The plan is in [docs/TASKS.md](docs/TASKS.md), the reasons are in [docs/DECISIONS.md](docs/DECISIONS.md).
+M0, the accuracy evaluation, is in progress. The protocol is registered. The run is complete and scored in [docs/evaluation-results.md](docs/evaluation-results.md). The lowest mean absolute error is 92.3 kcal (95% interval 82.0 to 103.1), from Claude Sonnet 5.5 with the prompt that lists every food, with 1.7% of calls invalid. The plates are from California cafeterias under a fixed overhead camera, so the number does not carry over to phone photos or home cooking. There is no app code yet. The plan is in [docs/TASKS.md](docs/TASKS.md), the reasons are in [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Evaluation
 

@@ -20,8 +20,8 @@ Registered before any paid call:
 
 Run and decide:
 
-- [ ] M0.4 Run the evaluation. The evaluation's cost is capped at 3.50 USD by its stop rule; the key's workspace has a monthly spend limit of 5 USD.
-- [ ] M0.5 Score the raw records and publish the results.
+- [x] M0.4 Run the evaluation. The evaluation's cost is capped at 3.50 USD by its stop rule; the key's workspace has a monthly spend limit of 5 USD.
+- [x] M0.5 Score the raw records and publish the results.
 - [ ] M0.6 Decide the model and go or no-go. Record it in DECISIONS.md with its date, stating that the results had been seen.
 
 ## Gate
