@@ -10,16 +10,22 @@ extension Meal {
         return replacing(index, with: item)
     }
 
-    /// The kcal of the item scale in proportion to the grams (R10). An edit that would put the scaled
-    /// kcal outside 0 to 5000 is refused as a whole.
+    /// The kcal of the item scales in proportion to the grams (R10). An edit that would put the scaled
+    /// kcal outside 0 to 5000 is refused as a whole. Grams equal to the current ones change nothing,
+    /// because the scaling can move the kcal by one ulp.
     public func settingGrams(ofItemAt index: Int, to grams: Double) throws(LedgerError) -> Meal {
         var item = try requireItem(at: index)
         guard Limits.grams.contains(grams) else { throw .grams(grams) }
-        // Multiply first, then divide: 130 kcal for 150 g at 100 g is 86.66666666666667, and one
-        // rounding is all it has.
-        let kcal = item.kcal * grams / item.grams
+        if grams == item.grams { return self }
+        // Multiply first, then divide: when the product is exact, one rounding is all the result
+        // has, and whole numbers stay whole (195 kcal at 150 g set to 300 g is 390).
+        let scaled = item.kcal * grams / item.grams
+        // The scaling is not reversible to the last bit: 5000 kcal at 1541.3 g set to 1324.1 g and back
+        // gives 5000.000000000001, which would refuse the restore. A value that close is the bound.
+        let upper = Limits.kcal.upperBound
+        let kcal = scaled > upper && scaled - upper <= Self.scalingTolerance ? upper : scaled
         guard Limits.kcal.contains(kcal) else {
-            throw .scaledKcal(name: item.name, grams: grams, kcal: kcal)
+            throw .scaledKcal(name: item.name, grams: grams, kcal: scaled)
         }
         item.grams = grams
         item.kcal = kcal
@@ -41,16 +47,22 @@ extension Meal {
         return copy
     }
 
-    /// An added item needs a name, grams and kcal (R10), which the type already requires.
     public func adding(_ item: FoodItem) throws(LedgerError) -> Meal {
         guard items.count < Limits.maxItems else { throw .tooManyItems(items.count + 1) }
-        try Self.requireName(item.name)
-        guard Limits.grams.contains(item.grams) else { throw .grams(item.grams) }
-        guard Limits.kcal.contains(item.kcal) else { throw .kcal(item.kcal) }
+        try Self.requireInBounds(item)
         var copy = self
         copy.items.append(item)
         return copy
     }
+
+    /// The bounds of R5 for one item. An added item and an item read from a file both meet them.
+    static func requireInBounds(_ item: FoodItem) throws(LedgerError) {
+        try requireName(item.name)
+        guard Limits.grams.contains(item.grams) else { throw .grams(item.grams) }
+        guard Limits.kcal.contains(item.kcal) else { throw .kcal(item.kcal) }
+    }
+
+    private static let scalingTolerance = 1e-9
 
     private func requireItem(at index: Int) throws(LedgerError) -> FoodItem {
         guard items.indices.contains(index) else { throw .itemIndex(index, count: items.count) }

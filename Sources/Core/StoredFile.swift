@@ -5,6 +5,13 @@ public struct FormatError: PlateError, Equatable {
     public let what: String
     public let expected: String
     public let saw: String
+
+    /// Public because the modules that define a file (Ledger) report a refusal of its content.
+    public init(what: String, expected: String, saw: String) {
+        self.what = what
+        self.expected = expected
+        self.saw = saw
+    }
 }
 
 /// The files the package defines (D013) are one JSON object: {"version": 1, "<name>": [...]}.

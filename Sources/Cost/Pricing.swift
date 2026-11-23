@@ -2,7 +2,7 @@ import Core
 import Foundation
 
 /// USD per million tokens.
-public struct Price: Equatable, Sendable {
+struct Price: Equatable, Sendable {
     public let input: Decimal
     public let output: Decimal
 }
@@ -12,7 +12,7 @@ public enum Pricing {
     public static let readOn = "2026-11-22"
 
     /// Whole dollars, built from integers: a Decimal made from a float literal would carry a binary fraction.
-    public static let table: [String: Price] = [
+    static let table: [String: Price] = [
         "claude-sonnet-5-5": Price(input: Decimal(2), output: Decimal(10))
     ]
 

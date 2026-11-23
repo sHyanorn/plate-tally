@@ -43,10 +43,16 @@ import Testing
         #expect(try JSONDecoder().decode([LocalDay].self, from: data) == [day])
     }
 
-    @Test func decodingABadTextFails() {
-        #expect(throws: DateError.self) {
+    @Test func decodingABadTextFailsAtItsPlace() {
+        let error = #expect(throws: DecodingError.self) {
             try JSONDecoder().decode([LocalDay].self, from: Data(#"["2026-02-30"]"#.utf8))
         }
+        guard case .dataCorrupted(let context)? = error else {
+            Issue.record("not a dataCorrupted error: \(String(describing: error))")
+            return
+        }
+        #expect(context.debugDescription == #"not a calendar day written as YYYY-MM-DD: "2026-02-30""#)
+        #expect(context.codingPath.map(\.stringValue) == ["Index 0"])
     }
 }
 
@@ -77,6 +83,20 @@ import Testing
         #expect(try JSONDecoder().decode([LocalDateTime].self, from: data) == [moment])
     }
 
+    @Test func decodingABadTextFailsAtItsPlace() {
+        let error = #expect(throws: DecodingError.self) {
+            try JSONDecoder().decode([LocalDateTime].self, from: Data(#"["2026-02-30T12:00"]"#.utf8))
+        }
+        guard case .dataCorrupted(let context)? = error else {
+            Issue.record("not a dataCorrupted error: \(String(describing: error))")
+            return
+        }
+        #expect(
+            context.debugDescription
+                == #"not a calendar day and time written as YYYY-MM-DDTHH:MM: "2026-02-30T12:00""#)
+        #expect(context.codingPath.map(\.stringValue) == ["Index 0"])
+    }
+
     /// 2026-11-22T20:30:00Z read in three time zones, and a year change.
     @Test(arguments: [
         (0, "2026-11-22T20:30"), (8 * 3600, "2026-11-23T04:30"), (-5 * 3600, "2026-11-22T15:30"),
@@ -84,12 +104,28 @@ import Testing
     func localTimeOfAnInstant(offset: Int, expected: String) throws {
         let instant = try #require(ISO8601DateFormatter().date(from: "2026-11-22T20:30:00Z"))
         let zone = try #require(TimeZone(secondsFromGMT: offset))
-        #expect(LocalDateTime(instant, in: zone).description == expected)
+        #expect(try LocalDateTime(instant, in: zone).description == expected)
     }
 
     @Test func instantCrossesTheYear() throws {
         let instant = try #require(ISO8601DateFormatter().date(from: "2026-12-31T16:00:00Z"))
         let zone = try #require(TimeZone(secondsFromGMT: 8 * 3600))
-        #expect(LocalDateTime(instant, in: zone).description == "2027-01-01T00:00")
+        #expect(try LocalDateTime(instant, in: zone).description == "2027-01-01T00:00")
+    }
+
+    /// The first second of year 1 and the last of year 9999, in UTC. Foundation reads year 1 in the
+    /// Julian calendar, so its first second is 62,135,769,600 s before 1970, not 62,135,596,800.
+    @Test(arguments: [(-62_135_769_600.0, "0001-01-01T00:00"), (253_402_300_799.0, "9999-12-31T23:59")])
+    func theFirstAndLastInstantsOfTheSupportedYearsAreRead(seconds: Double, expected: String) throws {
+        let zone = try #require(TimeZone(secondsFromGMT: 0))
+        #expect(try LocalDateTime(Date(timeIntervalSince1970: seconds), in: zone).description == expected)
+    }
+
+    /// 253,402,300,800 s is 10000-01-01T00:00:00Z. One second before year 1 reads as 0001-12-31 of era 0.
+    /// A Date is a Double, so it can also be NaN or infinite, and NaN reads as 4713 BC.
+    @Test(arguments: [253_402_300_800.0, -62_135_769_601.0, Double.infinity, -Double.infinity, Double.nan])
+    func anInstantBeyondTheSupportedYearsIsRefused(seconds: Double) throws {
+        let zone = try #require(TimeZone(secondsFromGMT: 0))
+        #expect(throws: DateError.self) { try LocalDateTime(Date(timeIntervalSince1970: seconds), in: zone) }
     }
 }

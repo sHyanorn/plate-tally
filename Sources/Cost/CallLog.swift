@@ -35,7 +35,7 @@ extension CallRecord: Codable {
             let cost = Decimal(string: text)
         else {
             throw DecodingError.dataCorruptedError(
-                forKey: .costUSD, in: values, debugDescription: "expected a decimal number as text, saw \"\(text)\"")
+                forKey: .costUSD, in: values, debugDescription: "not a decimal number written as text: \"\(text)\"")
         }
         self.at = try values.decode(LocalDateTime.self, forKey: .at)
         self.model = try values.decode(String.self, forKey: .model)
@@ -72,7 +72,6 @@ public struct CallLog: Equatable, Sendable {
         calls.filter { $0.at.day == day }.reduce(Decimal.zero) { $0 + $1.costUSD }
     }
 
-    /// The month of `day`: same year, same month.
     public func total(inMonthOf day: LocalDay) -> Decimal {
         calls.filter { $0.at.day.year == day.year && $0.at.day.month == day.month }
             .reduce(Decimal.zero) { $0 + $1.costUSD }

@@ -1,4 +1,5 @@
 import Core
+import Estimation
 import Foundation
 import Testing
 
@@ -26,6 +27,13 @@ private func log(_ calls: CallRecord...) -> CallLog {
         let record = try call("2026-11-23T12:30", input: 566, output: 107)
         #expect(record.costUSD == decimal("0.002202"))
         #expect(record.usage == Usage(inputTokens: 566, outputTokens: 107))
+    }
+
+    /// The reply carries the usage, and a failed call has no reply, so there is nothing to put in a record.
+    @Test func aCallThatFailsWithAnHTTPErrorGivesNoReplyAndNoUsage() {
+        let body = Data(#"{"error":{"type":"api_error","message":"Internal server error"}}"#.utf8)
+        let error = #expect(throws: EstimationError.self) { try Estimation.read(status: 500, body: body) }
+        #expect(error?.reason == .http)
     }
 
     @Test func aCallToAnUnknownModelHasNoRecord() throws {
@@ -177,6 +185,24 @@ private func log(_ calls: CallRecord...) -> CallLog {
     func aPlainDecimalCostIsRead(cost: String) throws {
         let text = oneCall.replacingOccurrences(of: "0.002202", with: cost)
         #expect(try CallLog(decoding: Data(text.utf8)).calls.first?.costUSD == decimal(cost))
+    }
+
+    @Test func aCostThatIsNotTextSaysSoAtItsPlace() {
+        let text = oneCall.replacingOccurrences(of: "0.002202", with: "abc")
+        let error = #expect(throws: FormatError.self) { try CallLog(decoding: Data(text.utf8)) }
+        #expect(
+            error?.description
+                == #"the file cannot be read: expected the format of version 1, saw not a decimal number written as text: "abc" at calls.Index 0.costUSD"#
+        )
+    }
+
+    @Test func aBadDateIsReportedWithItsPlaceInTheFile() {
+        let text = oneCall.replacingOccurrences(of: "2026-11-23T12:30", with: "2026-02-30T12:00")
+        let error = #expect(throws: FormatError.self) { try CallLog(decoding: Data(text.utf8)) }
+        #expect(
+            error?.description
+                == #"the file cannot be read: expected the format of version 1, saw not a calendar day and time written as YYYY-MM-DDTHH:MM: "2026-02-30T12:00" at calls.Index 0.at"#
+        )
     }
 
     @Test func aCostWrittenAsANumberIsRefused() {

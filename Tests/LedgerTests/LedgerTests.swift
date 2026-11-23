@@ -185,9 +185,89 @@ private let oneMeal = #"{"meals":[\#(riceMealJSON)],"version":1}"#
         #expect(throws: FormatError.self) { try Ledger(decoding: Data(text.utf8)) }
     }
 
-    @Test func aFileWithTheSameIdTwiceIsRefused() throws {
+    @Test func aFileWithTheSameIdTwiceIsRefusedWithBothPlaces() throws {
         let text = #"{"meals":[\#(riceMealJSON),\#(riceMealJSON)],"version":1}"#
-        #expect(throws: LedgerError.duplicateID(mealID(1))) { try Ledger(decoding: Data(text.utf8)) }
+        let error = #expect(throws: FormatError.self) { try Ledger(decoding: Data(text.utf8)) }
+        #expect(
+            error?.description
+                == "the file holds a meal id twice: expected each meal id once, saw 00000000-0000-0000-0000-000000000001 at meals.Index 0.id and meals.Index 1.id"
+        )
+    }
+
+    @Test func theFirstRepeatInTheFileIsTheOneReported() throws {
+        let ids = [1, 2, 2, 1].map { number in
+            riceMealJSON.replacingOccurrences(of: "000000000001", with: String(format: "%012d", number))
+        }
+        let text = #"{"meals":[\#(ids.joined(separator: ","))],"version":1}"#
+        let error = #expect(throws: FormatError.self) { try Ledger(decoding: Data(text.utf8)) }
+        #expect(error?.saw == "00000000-0000-0000-0000-000000000002 at meals.Index 1.id and meals.Index 2.id")
+    }
+
+    private func fileOf(meals: [String]) -> Data {
+        Data(#"{"meals":[\#(meals.joined(separator: ","))],"version":1}"#.utf8)
+    }
+
+    private func mealJSON(id: Int = 1, items: [String]) -> String {
+        #"{"at":"2026-11-23T12:30","id":"00000000-0000-0000-0000-\#(String(format: "%012d", id))","items":[\#(items.joined(separator: ","))]}"#
+    }
+
+    private func itemJSON(name: String = "x", grams: String = "100", kcal: String = "100") -> String {
+        #"{"grams":\#(grams),"kcal":\#(kcal),"name":"\#(name)"}"#
+    }
+
+    @Test(arguments: [
+        ("0", "100", "x", "the grams are out of range", "a number from 1 to 2000", "0"),
+        ("2000.5", "100", "x", "the grams are out of range", "a number from 1 to 2000", "2000.5"),
+        ("100", "-5", "x", "the kcal are out of range", "a number from 0 to 5000", "-5"),
+        ("100", "5000.5", "x", "the kcal are out of range", "a number from 0 to 5000", "5000.5"),
+        (
+            "100", "100", "", "the name is not valid",
+            "a name of 1 to 100 characters after surrounding whitespace is removed", "a name of 0 characters"
+        ),
+        (
+            "100", "100", "   ", "the name is not valid",
+            "a name of 1 to 100 characters after surrounding whitespace is removed", "a name of 0 characters"
+        ),
+    ])
+    func anItemOutsideTheBoundsOfR5IsRefusedWithItsPlace(
+        grams: String, kcal: String, name: String, what: String, expected: String, saw: String
+    ) {
+        let good = itemJSON()
+        let file = fileOf(meals: [mealJSON(id: 1, items: [good]), mealJSON(id: 2, items: [good, itemJSON(name: name, grams: grams, kcal: kcal)])])
+        let error = #expect(throws: FormatError.self) { try Ledger(decoding: file) }
+        #expect(error?.what == what)
+        #expect(error?.expected == expected)
+        #expect(error?.saw == "\(saw) at meals.Index 1.items.Index 1")
+    }
+
+    @Test func aMealWithMoreThanTwentyItemsIsRefused() {
+        let twenty = Array(repeating: itemJSON(), count: 20)
+        #expect(throws: Never.self) { try Ledger(decoding: self.fileOf(meals: [self.mealJSON(items: twenty)])) }
+        let error = #expect(throws: FormatError.self) {
+            try Ledger(decoding: self.fileOf(meals: [self.mealJSON(items: twenty + [self.itemJSON()])]))
+        }
+        #expect(
+            error?.description
+                == "the meal has too many items: expected at most 20 items, saw 21 items at meals.Index 0.items")
+    }
+
+    @Test func itemsAtTheBoundsAreRead() throws {
+        let longName = String(repeating: "x", count: 100)
+        let items = [
+            itemJSON(grams: "1", kcal: "0"), itemJSON(name: longName, grams: "2000", kcal: "5000"),
+        ]
+        let saved = try Ledger(decoding: fileOf(meals: [mealJSON(items: items)]))
+        #expect(saved.meals[0].items == [FoodItem(name: "x", grams: 1, kcal: 0), FoodItem(name: longName, grams: 2000, kcal: 5000)])
+    }
+
+    @Test func aBadDateIsReportedWithItsPlaceInTheFile() {
+        let text =
+            #"{"meals":[{"at":"2026-02-30T12:00","id":"00000000-0000-0000-0000-000000000001","items":[]}],"version":1}"#
+        let error = #expect(throws: FormatError.self) { try Ledger(decoding: Data(text.utf8)) }
+        #expect(
+            error?.description
+                == #"the file cannot be read: expected the format of version 1, saw not a calendar day and time written as YYYY-MM-DDTHH:MM: "2026-02-30T12:00" at meals.Index 0.at"#
+        )
     }
 
     @Test func aMealWithAnItemThatCannotBeStoredIsRefusedAtWrite() throws {

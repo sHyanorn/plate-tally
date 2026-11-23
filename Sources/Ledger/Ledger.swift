@@ -50,11 +50,33 @@ extension Ledger {
         try StoredFile.encode(File(version: StoredFile.version, meals: meals))
     }
 
-    /// Throws `FormatError` for a file that is not version 1 of the format, and `LedgerError` for one
-    /// that holds a meal id twice.
-    public init(decoding data: Data) throws {
+    /// A file is held to what an edit keeps: each meal id once and the bounds of R5 for every item.
+    /// Each refusal is a `FormatError` that names the place in the file.
+    public init(decoding data: Data) throws(FormatError) {
         let file = try StoredFile.decode(File.self, from: data)
-        self.init()
-        for meal in file.meals { try add(meal) }
+        var firstAt: [UUID: Int] = [:]
+        for (m, meal) in file.meals.enumerated() {
+            if let first = firstAt[meal.id] {
+                throw FormatError(
+                    what: "the file holds a meal id twice", expected: "each meal id once",
+                    saw: "\(meal.id.uuidString) at meals.Index \(first).id and meals.Index \(m).id")
+            }
+            firstAt[meal.id] = m
+            guard meal.items.count <= Limits.maxItems else {
+                throw Self.refusal(.tooManyItems(meal.items.count), at: "meals.Index \(m).items")
+            }
+            for (i, item) in meal.items.enumerated() {
+                do {
+                    try Meal.requireInBounds(item)
+                } catch {
+                    throw Self.refusal(error, at: "meals.Index \(m).items.Index \(i)")
+                }
+            }
+        }
+        self.meals = file.meals
+    }
+
+    private static func refusal(_ error: LedgerError, at path: String) -> FormatError {
+        FormatError(what: error.what, expected: error.expected, saw: "\(error.saw) at \(path)")
     }
 }

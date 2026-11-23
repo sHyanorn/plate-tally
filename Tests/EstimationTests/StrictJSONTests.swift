@@ -54,6 +54,20 @@ import Testing
         #expect(throws: Never.self) { try StrictJSON.parse("[\(inner),\(inner),\(inner)]") }
     }
 
+    @Test func siblingObjectsAtTheLimitAreRead() throws {
+        let levels = StrictJSON.maxDepth - 1
+        let inner = String(repeating: #"{"a":"#, count: levels) + "1" + String(repeating: "}", count: levels)
+        #expect(throws: Never.self) { try StrictJSON.parse("[\(inner),\(inner),\(inner)]") }
+    }
+
+    /// Each level of the text is `{"a":`, five bytes, so the brace that passes the limit is at 5 * 16.
+    @Test func objectNestingPastTheLimitIsASyntaxErrorAtTheBraceThatPassesIt() {
+        let depth = StrictJSON.maxDepth + 1
+        let text = String(repeating: #"{"a":"#, count: depth) + "1" + String(repeating: "}", count: depth)
+        let error = #expect(throws: JSONSyntaxError.self) { try StrictJSON.parse(text) }
+        #expect(error == JSONSyntaxError(offset: 5 * (depth - 1), message: "nesting deeper than 16 levels"))
+    }
+
     @Test func aHundredThousandOpenBracketsAreASyntaxErrorNotAStackOverflow() {
         #expect(throws: JSONSyntaxError.self) { try StrictJSON.parse(String(repeating: "[", count: 100_000)) }
     }

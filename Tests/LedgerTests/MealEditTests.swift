@@ -68,11 +68,11 @@ func meal(_ items: [FoodItem], id: Int = 1, at: String = "2026-11-23T12:30") thr
         #expect(try meal([rice]).settingGrams(ofItemAt: 0, to: 75).items[0].kcal == 97.5)
     }
 
-    /// 130 kcal at 150 g, scaled to 100 g: the product comes first and one division rounds once.
+    /// 7 kcal at 25 g set to 100 g is exactly 28 when the product comes first. The quotient first gives
+    /// 28.000000000000004.
     @Test func theProductComesBeforeTheDivision() throws {
-        let item = FoodItem(name: "rice", grams: 150, kcal: 130)
-        let kcal = try meal([item]).settingGrams(ofItemAt: 0, to: 100).items[0].kcal
-        #expect(kcal == 86.66666666666667)
+        let item = FoodItem(name: "x", grams: 25, kcal: 7)
+        #expect(try meal([item]).settingGrams(ofItemAt: 0, to: 100).items[0].kcal == 28)
     }
 
     @Test func otherItemsAreNotTouched() throws {
@@ -95,6 +95,27 @@ func meal(_ items: [FoodItem], id: Int = 1, at: String = "2026-11-23T12:30") thr
         #expect(try meal([item]).settingGrams(ofItemAt: 0, to: 200).items[0].kcal == 5000)
         let error = #expect(throws: LedgerError.self) { try meal([item]).settingGrams(ofItemAt: 0, to: 200.5) }
         #expect(error == .scaledKcal(name: "oil", grams: 200.5, kcal: 5012.5))
+    }
+
+    /// Scaling by a ratio and then by its inverse is off by one ulp for these grams.
+    @Test(arguments: [(1541.3, 1324.1), (1797.0, 1648.6), (592.5, 138.1)])
+    func anItemAtTheUpperBoundCanBeRestoredAfterAChangeOfTheGrams(start: Double, other: Double) throws {
+        let oil = FoodItem(name: "oil", grams: start, kcal: 5000)
+        let changed = try meal([oil]).settingGrams(ofItemAt: 0, to: other)
+        #expect(changed.items[0].kcal < 5000)
+        #expect(try changed.settingGrams(ofItemAt: 0, to: start).items == [oil])
+    }
+
+    @Test func aScaledKcalJustPastTheUpperBoundIsTheBoundAndFurtherPastIsRefused() throws {
+        let oil = FoodItem(name: "oil", grams: 100, kcal: 5000)
+        #expect(try meal([oil]).settingGrams(ofItemAt: 0, to: 100.00000000001).items[0].kcal == 5000)
+        #expect(throws: LedgerError.self) { try meal([oil]).settingGrams(ofItemAt: 0, to: 100.000000001) }
+    }
+
+    /// 0.1 kcal at 3 g, scaled by 3 / 3, is 0.10000000000000002.
+    @Test func theSameGramsLeaveTheItemAsItIs() throws {
+        let before = try meal([rice, FoodItem(name: "x", grams: 3, kcal: 0.1)])
+        #expect(try before.settingGrams(ofItemAt: 1, to: 3) == before)
     }
 
     @Test func aRefusedScalingNamesTheItemTheGramsAndTheKcal() throws {
