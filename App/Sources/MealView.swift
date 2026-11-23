@@ -184,7 +184,7 @@ struct StoredMealView: View {
 
     var body: some View {
         if let meal = model.ledger.meals.first(where: { $0.id == id }) {
-            MealForm(model: model, meal: meal) { try model.replace($0) }
+            MealForm(model: model, meal: meal) { (next: Meal) throws(Problem) in try model.replace(next) }
                 .navigationTitle("Meal")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
