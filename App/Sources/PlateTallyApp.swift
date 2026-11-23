@@ -4,7 +4,12 @@ import Tally
 
 @main
 struct PlateTallyApp: App {
-    private let session: Result<Session, Problem> = AppEnvironment.live()
+    private let session: Result<Session, Problem> = {
+        #if DEBUG
+        if let stubbed = UITestHarness.session() { return stubbed }
+        #endif
+        return AppEnvironment.live()
+    }()
 
     var body: some Scene {
         WindowGroup {

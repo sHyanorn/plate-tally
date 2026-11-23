@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - "App/**"
+      - "Sources/**"
+      - "Package.swift"
       - ".github/workflows/ios-build.yml"
   workflow_dispatch:
 
@@ -28,7 +30,7 @@ jobs:
   build:
     name: Unsigned build on macOS
     runs-on: macos-26
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -55,11 +57,13 @@ jobs:
           xcodegen --version
           xcodegen generate --spec App/project.yml
 
-      - name: Show Xcode and SDKs
+      - name: Show Xcode, SDKs, schemes and simulators
         run: |
           xcodebuild -version
           xcodebuild -showsdks
           swift --version
+          xcodebuild -list -project App/PlateTally.xcodeproj
+          xcrun simctl list devices available
 
       - name: Build for the simulator
         run: |
@@ -108,3 +112,78 @@ jobs:
           path: ${{ runner.temp }}/evidence.txt
           retention-days: 1
           if-no-files-found: error
+
+      - name: Pick a simulator
+        run: |
+          udid=$(python3 - <<'PY'
+          import json, subprocess, sys
+          data = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "--json"]))
+          phones = sorted(
+              (device["name"], device["udid"])
+              for runtime, devices in data["devices"].items()
+              if "iOS-26" in runtime
+              for device in devices
+              if device["name"].startswith("iPhone")
+          )
+          if not phones:
+              seen = sorted(runtime for runtime, devices in data["devices"].items() if devices)
+              sys.exit("error: expected an iPhone simulator on iOS 26, saw runtimes: " + ", ".join(seen))
+          chosen = next((phone for phone in phones if phone[0] == "iPhone 17"), phones[0])
+          print("simulator: %s %s" % chosen, file=sys.stderr)
+          print(chosen[1])
+          PY
+          )
+          echo "UDID=$udid" >> "$GITHUB_ENV"
+          xcrun simctl bootstatus "$udid" -b
+
+      # The unit tests and the UI tests run the app on a fresh folder, a fixed clock and a canned
+      # reply (App/Sources/UITestHarness.swift), so no test touches the network or a key.
+      - name: Test the app on the simulator
+        run: |
+          mkdir "$RUNNER_TEMP/screenshots"
+          TEST_RUNNER_SCREENSHOT_DIR="$RUNNER_TEMP/screenshots" xcodebuild test \
+            -project App/PlateTally.xcodeproj \
+            -scheme PlateTally \
+            -configuration Debug \
+            -destination "id=$UDID" \
+            -parallel-testing-enabled NO \
+            -resultBundlePath "$RUNNER_TEMP/app-tests.xcresult" \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" 2>&1 | tee "$RUNNER_TEMP/app-tests.log"
+
+      # The package tests ran on Linux already. This run checks them against the Foundation of the
+      # platform the app ships on.
+      - name: Test the package on the simulator
+        run: |
+          xcodebuild -list
+          xcodebuild test \
+            -scheme PlateTallyKit-Package \
+            -destination "id=$UDID" \
+            -resultBundlePath "$RUNNER_TEMP/package-tests.xcresult" 2>&1 | tee "$RUNNER_TEMP/package-tests.log"
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: screenshots
+          path: ${{ runner.temp }}/screenshots
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Upload test logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-logs
+          path: ${{ runner.temp }}/*.log
+          retention-days: 3
+          if-no-files-found: warn
+
+      - name: Summarize failures
+        if: always()
+        run: |
+          {
+            echo "## Errors and failed tests"
+            echo '```'
+            (grep -h -E "error:|failed|FAILED" "$RUNNER_TEMP"/*.log || true) | sort -u | head -100
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

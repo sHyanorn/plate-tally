@@ -53,6 +53,7 @@ struct DayView: View {
                                 time: model.instant(of: meal.at)
                                     .formatted(Date.FormatStyle(date: .omitted, time: .shortened).locale(locale)))
                         }
+                        .accessibilityIdentifier("meal-row")
                         .swipeActions(edge: .trailing) {
                             Button("Delete", role: .destructive) { deleting = meal }
                         }
@@ -113,7 +114,7 @@ struct DayView: View {
             if CameraPicker.isAvailable {
                 Button("Take photo") { showCamera = true }
             }
-            Button("Choose photo") { showLibrary = true }
+            Button("Choose photo", action: choosePhoto)
             Button("Cancel", role: .cancel) {}
         }
         .confirmationDialog(
@@ -187,6 +188,16 @@ struct DayView: View {
         } else {
             choosingSource = true
         }
+    }
+
+    private func choosePhoto() {
+        #if DEBUG
+        if let picture = UITestHarness.photo {
+            use(picture)
+            return
+        }
+        #endif
+        showLibrary = true
     }
 
     private func use(_ image: UIImage) {
