@@ -292,11 +292,15 @@ private struct MealCard: View {
     let meal: Meal
     let time: String
 
+    @Environment(\.dynamicTypeSize) private var typeSize
+
     var body: some View {
         HStack(spacing: 14) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(time).textRole(.caption).foregroundStyle(Palette.ink2)
-                Text(meal.items.map(\.name).joined(separator: ", ")).textRole(.name).lineLimit(1)
+                Text(meal.items.map(\.name).joined(separator: ", "))
+                    .textRole(.name)
+                    .lineLimit(typeSize.isAccessibilitySize ? 2 : 1)
             }
             Spacer(minLength: 8)
             VStack(alignment: .trailing, spacing: 4) {
