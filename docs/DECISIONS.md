@@ -81,3 +81,17 @@ Decision: The project file is generated in CI from a text spec. It is never comm
 Rationale: A generated project file holds strings and paths that the repository rules forbid. It also merges badly. The text spec is short.
 
 Alternatives: A committed project file.
+
+## D009: Claude Sonnet 5.5 with the item list; go
+
+Date: 2026-11-23
+
+Decision: The app calls Claude Sonnet 5.5 and asks for the item list, the form the evaluation calls P2. The project goes on to the gate and M1. This decision was made after the evaluation results had been seen.
+
+Rationale: In the registered evaluation (docs/evaluation-results.md) this cell has the lowest MAE, 92.3 kcal (95% interval 82.0 to 103.1). Claude Haiku 5.5 with the same prompt has 121.4 kcal, and the paired difference is -29.1 kcal (-39.6 to -18.8). Against the total-only cells the MAE difference is not distinguished. The signed mean error of the chosen cell is 2.6 kcal (-12.6 to 17.3); the other three cells overestimate by 48 to 63 kcal on average. 1.7% of its calls were invalid. A single estimate is rough: 50.2% of the valid estimates with a reference of at least 50 kcal are within 30% of the reference and 33.5% within 20%. The app therefore lets the user correct the items and grams (R10). The item list is also what the app needs to match foods against the food table (R8). The mean cost of a call in the evaluation was 0.0023 USD; the app's larger image adds about 0.0012 USD at the list price.
+
+The limits of the evaluation stay: cafeteria plates from California under a fixed overhead camera, 300 dishes, one call per dish with sampling at the API default, a reference computed from ingredient weights. The evaluation sent 640 x 480 PNG images (414 image tokens); the app sends 1024 px JPEGs (about 1,036 tokens), so cost and accuracy may differ. The evaluation scored the model's kcal values; the app computes matched items from the food table (R8). The numbers are not carried over to phone photos or home cooking.
+
+Post hoc finding, not a registered result: 236 of the 237 invalid replies hold a valid JSON object after some prose, 211 of them from Claude Sonnet 5.5 with the total-only prompt and 21 from Claude Haiku 5.5 with it. The registered handling repairs nothing, so these replies count as invalid and the scores stand as registered. No rescoring was done. With the item prompt 4 of the 300 replies of Claude Sonnet 5.5 had this shape. The app keeps R6: such a reply is shown as an error, and a new call happens only when the user asks (R7).
+
+Alternatives: Claude Haiku 5.5 with the item list, at about a twentieth of the cost per call (0.00012 USD against 0.0023 USD), with an MAE 29 kcal higher and an overestimate of 52 kcal on average. Claude Sonnet 5.5 with the total-only prompt: 70.3% failure share, so its MAE of 106.9 kcal rests on 89 dishes. An amendment that reads the object out of a reply with prose and publishes both scores; it would mainly change the total-only cells, which the app does not use. Stopping the project: no-go.
