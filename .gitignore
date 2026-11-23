@@ -12,9 +12,10 @@ eval/.cache/
 # Run lock of the evaluation runner.
 eval/raw/.lock
 
-# Swift build products. The project file is generated, not committed.
+# Swift build products. The project file and its Info.plist are generated, not committed.
 .build/
 DerivedData/
 xcuserdata/
 *.xcodeproj
 *.xcworkspace
+App/Info.plist

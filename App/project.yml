@@ -1,0 +1,37 @@
+# Source of the generated Xcode project (D008). The bundle identifier, the display
+# name, the version and the deployment target are set here and nowhere else.
+name: PlateTally
+options:
+  deploymentTarget:
+    iOS: "26.0"
+targets:
+  PlateTally:
+    type: application
+    platform: iOS
+    sources: [Sources]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.shyanorn.plate-tally
+        MARKETING_VERSION: "0.1.0"
+        # CI overrides this with the workflow run number, so every build is higher.
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "6.0"
+        # The platform preset says 1,2. This app is for an iPhone.
+        TARGETED_DEVICE_FAMILY: "1"
+    info:
+      path: Info.plist
+      properties:
+        CFBundleDisplayName: Plate Tally
+        # Without these two lines the generated file holds the fixed values 1.0 and 1.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # The app has no encryption of its own. The key skips the export questionnaire
+        # at every upload.
+        ITSAppUsesNonExemptEncryption: false
+        UILaunchScreen: {}
+# XcodeGen writes a scheme only for a declared one, and the CI commands name it.
+schemes:
+  PlateTally:
+    build:
+      targets:
+        PlateTally: all
