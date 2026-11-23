@@ -134,6 +134,7 @@ final class ScreenshotTests: XCTestCase {
             app.buttons["settings"].tap()
             XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
             snap("settings-empty", look)
+            XCTAssertTrue(hasText("Light", in: app))
 
             app.secureTextFields["api-key"].tap()
             app.secureTextFields["api-key"].typeText("test-key-value")
@@ -230,9 +231,10 @@ final class ScreenshotTests: XCTestCase {
         field.typeText(text)
     }
 
-    /// True when some static text of the screen holds the text.
+    /// True when some element of the screen has the text in its label.
     private func hasText(_ text: String, in app: XCUIApplication) -> Bool {
-        app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", text)).firstMatch.exists
+        let labelled = NSPredicate(format: "label CONTAINS %@", text)
+        return app.descendants(matching: .any).matching(labelled).firstMatch.exists
     }
 
     private func fill(_ field: XCUIElement, _ text: String) {

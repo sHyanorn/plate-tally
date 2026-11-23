@@ -55,10 +55,12 @@ struct SettingsView: View {
                 Section("Activity") {
                     Picker("Activity", selection: activityBinding) {
                         ForEach(ActivityLevel.allCases, id: \.self) { level in
-                            LabeledContent(
-                                Self.name(of: level),
-                                value: "×\(level.factor.formatted(.number.precision(.fractionLength(2))))"
-                            )
+                            let factor = level.factor.formatted(.number.precision(.fractionLength(2)))
+                            HStack {
+                                Text(Self.name(of: level))
+                                Spacer()
+                                Text(verbatim: "×\(factor)").foregroundStyle(.secondary)
+                            }
                             .tag(level)
                         }
                     }
