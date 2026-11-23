@@ -1,0 +1,2 @@
+# Meant to stay empty. An entry is `path<TAB>exact line text` for a line that a tool forces into a file.
+# The platform project file is generated at build time, not committed, so nothing needs listing.

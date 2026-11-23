@@ -1,0 +1,20 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.pyc
+.env
+.DS_Store
+
+# Downloaded images and metadata, rebuilt by the evaluation commands.
+eval/.cache/
+
+# Run lock of the evaluation runner.
+eval/raw/.lock
+
+# Swift build products. The project file is generated, not committed.
+.build/
+DerivedData/
+xcuserdata/
+*.xcodeproj
+*.xcworkspace
