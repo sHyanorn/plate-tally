@@ -40,7 +40,7 @@ No UI code. Each module has tests that run on Linux without network. M1.4 (FoodD
 
 - [x] M1.1 Core: food item, meal, limits, dates, errors.
 - [x] M1.2 Energy: Mifflin-St Jeor, activity factors, the test vector in SPEC.md.
-- [ ] M1.3 Estimation: request building, response parsing and validation (R5, R6).
+- [x] M1.3 Estimation: request building, response parsing and validation (R5, R6).
 - [ ] M1.5 Ledger: meal records, daily totals, edit and recompute.
 - [ ] M1.6 Cost: price table, per-call cost from usage, day and month totals, call limit.
 - [x] M1.8 CI on Linux: repository checks and package tests.

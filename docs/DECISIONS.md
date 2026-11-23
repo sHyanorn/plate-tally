@@ -119,3 +119,29 @@ Three limits. The numbers come from an analysis made after the results were seen
 The sample is cafeteria plates, and the numbers are not carried over to phone photos or home cooking (D009). An English table cannot match names in other languages. Without a table the app has no data file to build and ship, and the numbers it shows are the ones the evaluation scored.
 
 Alternatives: Build the table and the matching rule as in the trial. A looser rule, where every word of the name, cut words aside, occurs in the entry: 52.1% of the items matched, but for 80% of those the candidate entries differ by more than 10% of their median, so choosing one is a guess. A curated list from names to entries.
+
+## D012: Request and reply handling
+
+Date: 2026-11-23
+
+Decision: The package builds one request and judges one reply.
+
+Request: POST https://api.anthropic.com/v1/messages with the headers content-type and anthropic-version 2026-10-21. The app adds the key header (R23). The body holds the model claude-sonnet-5-5, max_tokens 600, thinking of type between_tools, and one user message: a base64 JPEG image block, then the text of the P2 prompt. There is no system prompt, no tool, no sampling parameter and no fallback. The prompt is a string constant in the Estimation module, and a test compares it with eval/prompts/p2.txt, the file the evaluation sent.
+
+Image: Before the body is built the JPEG bytes are checked. Every APPn segment except the JFIF header and the ICC profile, and every comment, is dropped, and so is everything after the first end marker. The long side must be at most 1024 px. Bytes that are not a complete JPEG are an error. The Exif orientation goes with the rest, so the app must turn the pixels upright before it encodes them.
+
+Reply: A status other than 200 is an error that gives the status and the type and message of the error body. A reply with the stop reason refusal or max_tokens is an error with that reason code and its text is not read. Otherwise the text blocks are joined and trimmed, one surrounding code fence is removed, and the text must be one JSON object that meets R5. The reason codes are http, bad_response, refusal, max_tokens, empty_text, not_json, not_object, wrong_keys, bad_value and too_many_items. A reply with prose before the object is not_json (D009). The usage of every reply that has one is returned with the result, so a failed call is costed.
+
+Parser: The JSON text is read by a parser that follows RFC 8259 and adds nothing. It rejects a repeated key, as the evaluation did, and the values NaN and Infinity.
+
+Toolchain: Package.swift uses tools version 6.0 and language mode 6, as App/project.yml does. The Linux CI job installs Swift 6.3.3 from swift.org and checks its SHA-256. The version was chosen to match Xcode 26.6; the macOS job prints the Swift version of Xcode.
+
+Rationale: The request has the model, prompt and parameters of the evaluation (docs/evaluation-protocol.md); the image differs, as D009 says. Claude Sonnet 5.5 rejects thinking disabled, and between_tools turns off up-front thinking. Without a thinking parameter the model thinks by default, with an effect on output and cost that was not measured. A fallback would let another model answer, and the cost table has one model. The reason codes refusal, max_tokens, empty_text and not_json come from the registered handling of the evaluation, http and bad_response from the response itself, the others from R5. In the 300 recorded calls of this model and prompt output was 112.5 tokens at the median and 393 at most, so 600 has room.
+
+The standard JSON readers are no basis for R6. On Linux the two of them disagree on a repeated key (one keeps the first, the other the last), and one reads a boolean as a number. Their behaviour on iOS cannot be tested here. One parser, built on the standard library's strings and numbers, does not depend on them.
+
+R3 needs the segments gone from the bytes that are sent. The encoder of the app cannot be tested on Linux, and the package can.
+
+The Linux runner image has its own Swift, which can be newer than that of Xcode 26.6 and accept code that Xcode rejects.
+
+Alternatives: Leave thinking out. Request a fallback. Read the JSON with the standard readers. Hold the prompt as a package resource through a symbolic link into eval/, whose handling in Xcode cannot be tested here. Leave the metadata to the encoder of the app. Use the Swift of the runner image.

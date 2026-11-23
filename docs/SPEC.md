@@ -1,6 +1,6 @@
 # Specification
 
-The plan is in TASKS.md. The reasons behind choices are in DECISIONS.md (D001 to D011).
+The plan is in TASKS.md. The reasons behind choices are in DECISIONS.md (D001 to D012).
 
 ## Purpose
 
@@ -27,7 +27,7 @@ The app reports numbers only. It sets no weight goal, computes no deficit and gi
 - R3. The sent image carries no metadata (location, time, device).
 - R4. One analysis is one request: the image and a fixed prompt. The app never sends the profile or past records.
 - R5. The response must be a JSON object with one key, `items`: a list of at most 20 objects with exactly the keys `name`, `grams`, `kcal`. `name` is a string of 1 to 100 characters after surrounding whitespace is removed. `grams` is a number from 1 to 2,000. `kcal` is a number from 0 to 5,000.
-- R6. Validation rejects. Surrounding whitespace and one surrounding code fence are removed before parsing; nothing else is repaired, trimmed or guessed. A response that fails R5 is shown as an error with its reason code.
+- R6. Validation rejects. Surrounding whitespace and one surrounding code fence are removed before parsing; nothing else is repaired, trimmed or guessed. A response that fails R5 is shown as an error with its reason code (D012).
 - R7. The app never retries on its own. A new call happens only when the user asks, and it is counted and costed like any call.
 - R8. Each item keeps the kcal that the model gave for its grams. The meal's energy is the sum of its items. The app has no food table (D011).
 - R9. The kcal of an item is the model's estimate until the user types another number. The screen marks the kcal of items and meals as estimates.
@@ -116,7 +116,7 @@ Logic lives in a Swift package at the repository root (Package.swift, Sources/, 
 |------------|---------------------------------------------------------------------------|
 | Core       | Shared types: food item, meal, limits, dates, errors. No dependencies.    |
 | Energy     | Mifflin-St Jeor, activity factors.                                        |
-| Estimation | Request building, response parsing and validation (R5, R6).               |
+| Estimation | Request, JPEG check (R2, R3), reply parsing and validation (R5, R6).      |
 | Ledger     | Meal records, daily totals, edit and recompute.                           |
 | Cost       | Price table, per-call cost from usage, day and month totals, call limit.  |
 
