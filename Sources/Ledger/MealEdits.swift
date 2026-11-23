@@ -10,26 +10,11 @@ extension Meal {
         return replacing(index, with: item)
     }
 
-    /// The kcal of the item scales in proportion to the grams (R10). An edit that would put the scaled
-    /// kcal outside 0 to 5000 is refused as a whole. Grams equal to the current ones change nothing,
-    /// because the scaling can move the kcal by one ulp.
+    /// The kcal of the item scale in proportion to the grams (R10). An edit that would put the scaled
+    /// kcal outside 0 to 5000 is refused as a whole.
     public func settingGrams(ofItemAt index: Int, to grams: Double) throws(LedgerError) -> Meal {
-        var item = try requireItem(at: index)
-        guard Limits.grams.contains(grams) else { throw .grams(grams) }
-        if grams == item.grams { return self }
-        // Multiply first, then divide: when the product is exact, one rounding is all the result
-        // has, and whole numbers stay whole (195 kcal at 150 g set to 300 g is 390).
-        let scaled = item.kcal * grams / item.grams
-        // The scaling is not reversible to the last bit: 5000 kcal at 1541.3 g set to 1324.1 g and back
-        // gives 5000.000000000001, which would refuse the restore. A value that close is the bound.
-        let upper = Limits.kcal.upperBound
-        let kcal = scaled > upper && scaled - upper <= Self.scalingTolerance ? upper : scaled
-        guard Limits.kcal.contains(kcal) else {
-            throw .scaledKcal(name: item.name, grams: grams, kcal: scaled)
-        }
-        item.grams = grams
-        item.kcal = kcal
-        return replacing(index, with: item)
+        let item = try requireItem(at: index)
+        return replacing(index, with: try item.settingGrams(to: grams))
     }
 
     /// The grams stay, so the energy per 100 g changes, and a later change of the grams scales from it.
@@ -62,11 +47,15 @@ extension Meal {
         guard Limits.kcal.contains(item.kcal) else { throw .kcal(item.kcal) }
     }
 
-    private static let scalingTolerance = 1e-9
-
     private func requireItem(at index: Int) throws(LedgerError) -> FoodItem {
         guard items.indices.contains(index) else { throw .itemIndex(index, count: items.count) }
         return items[index]
+    }
+
+    /// Swaps the item at the index for another, which the caller has checked.
+    func replacingItem(at index: Int, with item: FoodItem) throws(LedgerError) -> Meal {
+        _ = try requireItem(at: index)
+        return replacing(index, with: item)
     }
 
     private func replacing(_ index: Int, with item: FoodItem) -> Meal {
@@ -78,5 +67,27 @@ extension Meal {
     private static func requireName(_ name: String) throws(LedgerError) {
         let length = Limits.nameLength(of: name)
         guard Limits.nameLength.contains(length) else { throw .name(length: length) }
+    }
+}
+
+private let scalingTolerance = 1e-9
+
+extension FoodItem {
+    /// Grams equal to the current ones change nothing, because the scaling can move the kcal by one ulp.
+    func settingGrams(to grams: Double) throws(LedgerError) -> FoodItem {
+        guard Limits.grams.contains(grams) else { throw .grams(grams) }
+        if grams == self.grams { return self }
+        // Multiply first, then divide: when the product is exact, one rounding is all the result
+        // has, and whole numbers stay whole (195 kcal at 150 g set to 300 g is 390).
+        let scaled = kcal * grams / self.grams
+        // The scaling is not reversible to the last bit: 5000 kcal at 1541.3 g set to 1324.1 g and back
+        // gives 5000.000000000001, which would refuse the restore. A value that close is the bound.
+        let upper = Limits.kcal.upperBound
+        let kept = scaled > upper && scaled - upper <= scalingTolerance ? upper : scaled
+        guard Limits.kcal.contains(kept) else { throw .scaledKcal(name: name, grams: grams, kcal: scaled) }
+        var changed = self
+        changed.grams = grams
+        changed.kcal = kept
+        return changed
     }
 }

@@ -13,3 +13,13 @@ extension Problem {
 func usd(_ amount: Decimal) -> String {
     amount.formatted(.currency(code: "USD").precision(.fractionLength(4)))
 }
+
+/// R9: every energy figure is an estimate, so it carries the approximation sign. A sum of nothing is exactly 0.
+func kcalText(_ kcal: Double) -> String {
+    if kcal == 0 { return "0 kcal" }
+    return "≈ \(kcal.formatted(.number.precision(.fractionLength(0)))) kcal"
+}
+
+func gramsText(_ grams: Double) -> String {
+    "\(grams.formatted(.number.precision(.fractionLength(0...1)))) g"
+}
