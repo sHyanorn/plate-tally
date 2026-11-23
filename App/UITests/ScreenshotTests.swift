@@ -197,8 +197,11 @@ final class ScreenshotTests: XCTestCase {
             snap("settings", look + "-zh")
 
             app.descendants(matching: .any)["English"].firstMatch.tap()
-            XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
+            // The screen is kept before the checks, so a failure leaves its picture.
+            _ = app.navigationBars["Settings"].waitForExistence(timeout: 5)
             snap("settings-switched", look)
+            XCTAssertEqual(app.secureTextFields["api-key"].placeholderValue, "Anthropic API key")
+            XCTAssertTrue(app.navigationBars["Settings"].exists)
         }
     }
 
@@ -216,12 +219,15 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
-    /// Replaces the text of a field: the delete key once for every character, then the new text. The tap
-    /// lands at the right edge, where a right-aligned text ends, so the caret goes behind it.
+    /// Replaces the text of a field. A tap on the right edge gives a right-aligned field no keyboard focus,
+    /// and a tap elsewhere puts the caret at its start. Three taps select the line, and the arrow and delete
+    /// keys clear what the selection missed, wherever the caret is.
     private func replaceText(of field: XCUIElement, with text: String) {
-        field.coordinate(withNormalizedOffset: CGVector(dx: 0.98, dy: 0.5)).tap()
-        let old = field.value as? String ?? ""
-        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: old.count) + text)
+        field.tap(withNumberOfTaps: 3, numberOfTouches: 1)
+        let count = (field.value as? String ?? "").count
+        field.typeText(
+            String(repeating: XCUIKeyboardKey.rightArrow.rawValue, count: count)
+                + String(repeating: XCUIKeyboardKey.delete.rawValue, count: count) + text)
     }
 
     /// True when some static text of the screen holds the text.
