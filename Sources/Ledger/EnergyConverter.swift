@@ -74,8 +74,8 @@ public struct EnergyConverter: Equatable, Sendable {
         } catch {
             throw Problem(error)
         }
-        // Multiply first, then divide, as the scaling of an item does.
-        let kcal = basis == .serving ? typedKcal : typedKcal * grams / 100
+        // Multiply first, then divide, as the scaling of an item does, and keep its tolerance at the bound.
+        let kcal = keepingTheBound(basis == .serving ? typedKcal : typedKcal * grams / 100)
         guard Limits.kcal.contains(kcal) else { throw Problem(LedgerError.kcal(kcal)) }
         return FoodItem(name: name, grams: grams, kcal: kcal)
     }

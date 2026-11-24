@@ -70,6 +70,15 @@ private func converter(
         #expect(form.problem?.saw == "5400")
     }
 
+    /// 1045 kJ / 4.18 is 250.00000000000003 kcal, so 2000 g come out at 5000.000000000001 kcal, one ulp past
+    /// the bound, which the scaling of an item takes as the bound (D013). In kcal the label is exact.
+    @Test(arguments: [("1045", EnergyUnit.kJ), ("250", .kcal)])
+    func aLabelOfExactlyFiveThousandKcalIsAcceptedInEitherUnit(energy: String, unit: EnergyUnit) throws {
+        var form = converter(.per100g, grams: "2000")
+        form.type(energy, in: unit)
+        #expect(try form.item().get().kcal == 5000)
+    }
+
     @Test func eachFieldIsNamedInItsRefusal() {
         var form = converter(.per100g, grams: "x")
         form.type("1520", in: .kJ)

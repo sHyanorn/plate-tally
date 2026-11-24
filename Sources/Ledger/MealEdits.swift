@@ -49,7 +49,13 @@ extension Meal {
     }
 }
 
-private let scalingTolerance = 1e-9
+/// Scaled kcal that end above the bound by at most 1e-9 are the bound. The scaling is not exact to the last
+/// bit: 5000 kcal at 1541.3 g set to 1324.1 g and back gives 5000.000000000001, and so do 1045 kJ per 100 g
+/// for 2000 g eaten, which would refuse a restore and a label of exactly 5000 kcal.
+func keepingTheBound(_ kcal: Double) -> Double {
+    let upper = Limits.kcal.upperBound
+    return kcal > upper && kcal - upper <= 1e-9 ? upper : kcal
+}
 
 extension FoodItem {
     /// Grams equal to the current ones change nothing, because the scaling can move the kcal by one ulp.
@@ -59,10 +65,7 @@ extension FoodItem {
         // Multiply first, then divide: when the product is exact, one rounding is all the result
         // has, and whole numbers stay whole (195 kcal at 150 g set to 300 g is 390).
         let scaled = kcal * grams / self.grams
-        // The scaling is not reversible to the last bit: 5000 kcal at 1541.3 g set to 1324.1 g and back
-        // gives 5000.000000000001, which would refuse the restore. A value that close is the bound.
-        let upper = Limits.kcal.upperBound
-        let kept = scaled > upper && scaled - upper <= scalingTolerance ? upper : scaled
+        let kept = keepingTheBound(scaled)
         guard Limits.kcal.contains(kept) else { throw .scaledKcal(name: name, grams: grams, kcal: scaled) }
         var changed = self
         changed.grams = grams
