@@ -270,6 +270,17 @@ private let testVector = {
         #expect(model.storeProblem == nil)
     }
 
+    /// A count below 0 is not a usage, so nothing is logged and the next start reads the log.
+    @Test func aReplyWithANegativeTokenCountIsNotLoggedAndTheNextStartReadsTheLog() async throws {
+        let rig = try Rig()
+        rig.transport = RecordingTransport(body: try responseBody(text: twoItems, input: -1, output: 0))
+        let model = try rig.model()
+        let outcome = await model.analyze(try testImage())
+        #expect(outcome.call == nil)
+        #expect(model.storeProblem == nil)
+        #expect(throws: Never.self) { _ = try rig.model() }
+    }
+
     /// The money is spent either way, so the count must hold the call even when the file cannot be written.
     @Test func aCallLogThatCannotBeWrittenStillCountsTheCallAndIsReported() async throws {
         let rig = try Rig()

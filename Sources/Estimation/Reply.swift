@@ -128,6 +128,17 @@ private struct Billed: Decodable {
             case inputTokens = "input_tokens"
             case outputTokens = "output_tokens"
         }
+
+        /// A count below 0 is not a count. Its cost would be below 0, and the call log refuses such a cost.
+        init(from decoder: Decoder) throws {
+            let values = try decoder.container(keyedBy: CodingKeys.self)
+            inputTokens = try values.decode(Int.self, forKey: .inputTokens)
+            outputTokens = try values.decode(Int.self, forKey: .outputTokens)
+            for (key, count) in [(CodingKeys.inputTokens, inputTokens), (.outputTokens, outputTokens)] where count < 0 {
+                throw DecodingError.dataCorruptedError(
+                    forKey: key, in: values, debugDescription: "\(key.rawValue) is \(count), below 0")
+            }
+        }
     }
 
     let usage: TokenCounts

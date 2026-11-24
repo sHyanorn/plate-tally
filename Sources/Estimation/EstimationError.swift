@@ -47,7 +47,7 @@ extension EstimationError {
     static func noUsage(_ error: Error) -> EstimationError {
         EstimationError(
             reason: .badResponse, what: "the response has no usage",
-            expected: "an object with usage (input_tokens, output_tokens)", saw: describe(error))
+            expected: "an object with usage (input_tokens, output_tokens, each 0 or more)", saw: describe(error))
     }
 
     static func badResponse(_ error: Error) -> EstimationError {

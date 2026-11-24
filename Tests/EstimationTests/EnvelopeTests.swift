@@ -76,6 +76,15 @@ private let oneItem = #"{"items": [{"name": "rice", "grams": 100, "kcal": 130}]}
         #expect(error?.reason == .badResponse)
     }
 
+    /// A count below 0 is not a usage: it would cost less than nothing and write a log the next start refuses.
+    @Test(arguments: [(-1, 0), (0, -1)])
+    func aNegativeTokenCountIsNoUsage(input: Int, output: Int) throws {
+        let body = try response(text: oneItem, input: input, output: output)
+        let error = #expect(throws: EstimationError.self) { try Estimation.read(status: 200, body: body) }
+        #expect(error?.reason == .badResponse)
+        #expect(error?.what == "the response has no usage")
+    }
+
     /// The usage is read on its own: a response that states its tokens was billed, whatever else is wrong
     /// with it (SPEC, Cost).
     @Test(arguments: [

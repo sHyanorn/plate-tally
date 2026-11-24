@@ -184,6 +184,15 @@ private func log(_ calls: CallRecord...) -> CallLog {
         #expect(error?.description == "the file has another version: expected version 1, saw version 2")
     }
 
+    /// A log is checked with the rule of the reader before it is written, as a ledger is: a file that
+    /// cannot be read back stops the next start for good.
+    @Test func aCostThatTheReaderWouldRefuseIsNotWritten() throws {
+        var log = CallLog()
+        log.add(try CallRecord(at: LocalDateTime("2026-11-23T12:30"), model: sonnet, usage: Usage(inputTokens: -1, outputTokens: 0)))
+        let error = #expect(throws: FormatError.self) { try log.encoded() }
+        #expect(error?.description == "a cost cannot be stored: expected ASCII digits with at most one decimal point, saw -0.000002 at calls.Index 0.costUSD")
+    }
+
     @Test(arguments: ["abc", "", "1.5x", "-1", "1e3", "1.2.3", ".5", "5.", "+1", " 1", "\u{661}\u{662}", "NaN"])
     func aCostThatIsNotPlainDecimalTextIsRefused(cost: String) {
         let text = oneCall.replacingOccurrences(of: "0.002202", with: cost)

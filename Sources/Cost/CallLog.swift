@@ -24,16 +24,11 @@ extension CallRecord: Codable {
     }
 
     /// A Decimal encodes as a JSON number, which another reader takes for a binary fraction, so the
-    /// cost is stored as text. `Decimal(string:)` reads a prefix and stops at the first stray
-    /// character, so the text is checked first.
+    /// cost is stored as text.
     public init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: Keys.self)
         let text = try values.decode(String.self, forKey: .costUSD)
-        let parts = text.split(separator: ".", omittingEmptySubsequences: false)
-        guard (1...2).contains(parts.count),
-            parts.allSatisfy({ !$0.isEmpty && $0.allSatisfy { $0.isASCII && $0.isNumber } }),
-            let cost = Decimal(string: text)
-        else {
+        guard let cost = Self.cost(readFrom: text) else {
             throw DecodingError.dataCorruptedError(
                 forKey: .costUSD, in: values, debugDescription: "not a decimal number written as text: \"\(text)\"")
         }
@@ -48,7 +43,20 @@ extension CallRecord: Codable {
         try values.encode(at, forKey: .at)
         try values.encode(model, forKey: .model)
         try values.encode(usage, forKey: .usage)
-        try values.encode("\(costUSD)", forKey: .costUSD)
+        try values.encode(costText, forKey: .costUSD)
+    }
+
+    var costText: String { "\(costUSD)" }
+
+    /// The rule of the reader, which the writer checks too: ASCII digits with at most one point that has
+    /// a digit on each side. `Decimal(string:)` reads a prefix and stops at the first stray character, so
+    /// the text is checked first.
+    static func cost(readFrom text: String) -> Decimal? {
+        let parts = text.split(separator: ".", omittingEmptySubsequences: false)
+        guard (1...2).contains(parts.count),
+            parts.allSatisfy({ !$0.isEmpty && $0.allSatisfy { $0.isASCII && $0.isNumber } })
+        else { return nil }
+        return Decimal(string: text)
     }
 }
 
@@ -91,8 +99,15 @@ extension CallLog: StoredValue {
         var calls: [CallRecord]
     }
 
+    /// A log is checked with the rule of the reader before it is written, as a ledger is: a file that cannot
+    /// be read back stops the start for good.
     public func encoded() throws(FormatError) -> Data {
-        try StoredFile.encode(File(version: StoredFile.version, calls: calls))
+        for (index, call) in calls.enumerated() where CallRecord.cost(readFrom: call.costText) == nil {
+            throw FormatError(
+                what: "a cost cannot be stored", expected: "ASCII digits with at most one decimal point",
+                saw: "\(call.costText) at calls.Index \(index).costUSD")
+        }
+        return try StoredFile.encode(File(version: StoredFile.version, calls: calls))
     }
 
     public init(decoding data: Data) throws(FormatError) {
