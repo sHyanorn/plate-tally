@@ -24,8 +24,11 @@ public struct ItemEditor: Equatable, Sendable {
         original = item
     }
 
-    /// Takes the text of the energy field, in the unit the field is in.
+    /// Takes the text of the energy field, in the unit the field is in. The text the field shows is no input:
+    /// a field hands it back when it gains or loses the focus, and taken as typed it would stop the energy
+    /// from following the grams.
     public mutating func typeEnergy(_ text: String) {
+        guard text != energyText else { return }
         typedEnergy = TypedEnergy(unit: unit, text: text)
     }
 

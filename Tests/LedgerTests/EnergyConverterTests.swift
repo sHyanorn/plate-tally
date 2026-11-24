@@ -105,6 +105,17 @@ private func converter(
         #expect(form.text(in: .kcal) == "364")
     }
 
+    /// The field of the conversion hands back the text it shows when it gains or loses the focus. That is no
+    /// input: the typed kJ stay, and the rounded kcal do not replace them.
+    @Test func theConvertedTextHandedBackIsNoInput() {
+        var form = converter(.serving)
+        form.type("1250", in: .kJ)
+        form.type(form.text(in: .kcal), in: .kcal)
+        #expect(form.text(in: .kJ) == "1250")
+        #expect(form.follows(.kcal))
+        #expect(form.item() == .success(FoodItem(name: "Muesli bar", grams: 35, kcal: 1250 / 4.18)))
+    }
+
     @Test(arguments: ["0", "2001"])
     func gramsOutsideOneToTwoThousandAreRefused(grams: String) {
         for basis in EnergyConverter.Basis.allCases {

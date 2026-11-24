@@ -29,6 +29,16 @@ private func editing(_ item: FoodItem = rice, grams: String? = nil, kcal: String
         #expect(editor.item() == .success(FoodItem(name: "rice", grams: 300, kcal: 390)))
     }
 
+    /// A field hands back the text it shows when it gains or loses the focus. That is no input: the energy
+    /// still follows the grams and stays an estimate (R9, R10).
+    @Test func theShownTextHandedBackIsNoInput() {
+        var editor = editing()
+        editor.typeEnergy(editor.energyText)
+        editor.gramsText = "300"
+        #expect(editor.energyText == "390")
+        #expect(editor.energyIsEstimate)
+    }
+
     @Test func theFieldShowsOneDecimalButTheItemKeepsTheScaledValue() throws {
         let editor = editing(grams: "7")
         #expect(editor.energyText == "9.1")

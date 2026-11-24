@@ -18,8 +18,11 @@ public struct EnergyConverter: Equatable, Sendable {
 
     public init() {}
 
-    /// Takes the text of the energy field of a unit, for the current basis.
+    /// Takes the text of the energy field of a unit, for the current basis. The text the field shows is no
+    /// input: a field hands it back when it gains or loses the focus, and taken as typed the conversion,
+    /// rounded to one decimal, would replace the number that was typed.
     public mutating func type(_ text: String, in unit: EnergyUnit) {
+        guard text != self.text(in: unit) else { return }
         typed[basis] = TypedEnergy(unit: unit, text: text)
     }
 
