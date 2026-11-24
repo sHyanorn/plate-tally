@@ -59,6 +59,36 @@ private final class Seen: Sendable {
     var all: [URLRequest] { requests.withLock { $0 } }
 }
 
+/// Answers a request to the API with a 307 to another host, and any other request with 200. After the
+/// redirect it ends its own load, as the sample protocol of the platform vendor does: the loading system
+/// starts a new load for the new request, or, when the redirect is refused, has the 3xx as the final response.
+private final class RedirectingURLProtocol: URLProtocol {
+    static let seen = Seen()
+    static let elsewhere = URL(string: "https://elsewhere.invalid/v1/messages")!
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        Self.seen.add(request)
+        guard request.url?.host() == endpoint.host() else {
+            let ok = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            client?.urlProtocol(self, didReceive: ok, cacheStoragePolicy: .notAllowed)
+            client?.urlProtocol(self, didLoad: Data("{}".utf8))
+            client?.urlProtocolDidFinishLoading(self)
+            return
+        }
+        var next = request
+        next.url = Self.elsewhere
+        let redirect = HTTPURLResponse(
+            url: endpoint, statusCode: 307, httpVersion: nil, headerFields: ["Location": Self.elsewhere.absoluteString])!
+        client?.urlProtocol(self, wasRedirectedTo: next, redirectResponse: redirect)
+        client?.urlProtocol(self, didFailWithError: CocoaError(.userCancelled))
+    }
+
+    override func stopLoading() {}
+}
+
 /// The tests of this suite share one static handler, so they run one after another.
 @Suite(.serialized) struct TransportTests {
     private func transport(key: String? = testKey) -> URLSessionTransport {
@@ -103,6 +133,27 @@ private final class Seen: Sendable {
         #expect(failure?.what == "the request did not complete")
         #expect(failure?.expected == "a response from api.anthropic.com")
         #expect(failure?.saw.hasPrefix("URL error -1009") == true)
+    }
+
+    /// A redirect would take the key, and with a 307 the photo, to another host in a second request
+    /// (R4, R22, R23). Refused, the call ends with the redirect.
+    @Test func aRedirectIsNotFollowed() async {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [RedirectingURLProtocol.self]
+        let transport = URLSessionTransport(keys: MemoryKeyStore(testKey), configuration: configuration)
+        let response = try? await transport.send(request)
+        let seen = RedirectingURLProtocol.seen.all
+        #expect(seen.count == 1)
+        #expect(seen.allSatisfy { $0.url?.host() == endpoint.host() })
+        #expect(response?.status != 200)
+    }
+
+    /// No cookie is stored or sent, and 60 s bound the whole call, not only the wait between two packets (D015).
+    @Test func theSessionKeepsNoCookieAndGivesTheWholeCallSixtySeconds() {
+        let configuration = transport().session.configuration
+        #expect(configuration.httpCookieStorage == nil)
+        #expect(!configuration.httpShouldSetCookies)
+        #expect(configuration.timeoutIntervalForResource == 60)
     }
 
     @Test func withoutAKeyNothingIsSent() async {

@@ -9,7 +9,7 @@ struct URLSessionTransport: Sendable {
     private static let timeout: TimeInterval = 60
 
     let keys: any KeyStore
-    private let session: URLSession
+    let session: URLSession
 
     /// The default session keeps no cache and no cookies.
     init(keys: any KeyStore, configuration: URLSessionConfiguration = .ephemeral) {
