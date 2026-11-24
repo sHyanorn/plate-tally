@@ -212,3 +212,36 @@ extension Result {
         return nil
     }
 }
+
+/// The evaluation compares code points, and Swift compares strings by canonical equivalence. Each expected
+/// code below is what eval/plate_eval/parse.py gives for the same text under Python 3.13 (Unicode 15.1).
+@Suite struct CodePointTests {
+    /// U+1FEF decomposes to the backtick, so three of them equal "```" as Swift strings.
+    @Test func aFenceOfGreekVariaIsNotACodeFence() throws {
+        let varia = "\u{1FEF}\u{1FEF}\u{1FEF}"
+        #expect(try rejection("\(varia)json\n\(items(rice))\n\(varia)") == .notJSON)
+        #expect(try rejection("```json\n\(items(rice))\n\(varia)") == .notJSON)
+    }
+
+    /// The language word is \w of Python, judged one scalar at a time: a letter, a scalar with a numeric
+    /// value, or "_". A combining mark, a joiner or a circled letter is none of them.
+    @Test(arguments: ["a\u{301}", "x\u{200D}", "\u{24B6}"])
+    func aWordWithAScalarThatIsNoWordCharacterIsNoFence(word: String) throws {
+        #expect(try rejection("```\(word)\n\(items(rice))\n```") == .notJSON)
+    }
+
+    @Test(arguments: ["\u{661}", "\u{2167}", "_"])
+    func aWordOfDigitsNumeralsOrUnderscoreIsAFence(word: String) throws {
+        #expect(try accepted("```\(word)\n\(items(rice))\n```").count == 1)
+    }
+
+    /// A precomposed é and e with U+0301 are two keys, not one repeated, so the object has keys beyond the
+    /// ones of R5.
+    @Test(arguments: [
+        "{\"items\": [], \"\u{E9}\": 1, \"e\u{301}\": 1}",
+        "{\"items\": [{\"name\": \"a\", \"grams\": 1, \"kcal\": 1, \"\u{E9}\": 1, \"e\u{301}\": 1}]}",
+    ])
+    func keysThatDifferOnlyInNormalisationAreTwoKeys(text: String) throws {
+        #expect(try rejection(text) == .wrongKeys)
+    }
+}

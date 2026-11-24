@@ -55,15 +55,26 @@ extension Estimation {
 
     /// Removes one surrounding code fence: a first line of three backticks with an optional
     /// language word, and a last line of three backticks. Any other wrapper stays and fails to parse.
+    /// The lines are compared scalar by scalar, as the evaluation compares code points: as Swift strings,
+    /// three U+1FEF, which decomposes to the backtick, equal "```".
     static func unfence(_ text: String) -> String {
         // Lines end at the scalar \n, as in the evaluation. Swift reads "\r\n" as one Character, so a
         // split on Characters would not see the end of a line that has it.
         let lines = text.unicodeScalars.split(separator: "\n", omittingEmptySubsequences: false)
-            .map { String($0) }
-        guard lines.count >= 3, lines[lines.count - 1] == "```", lines[0].hasPrefix("```"),
-            lines[0].dropFirst(3).allSatisfy({ $0.isLetter || $0.isNumber || $0 == "_" })
+        let fence = "```".unicodeScalars
+        guard lines.count >= 3, lines[lines.count - 1].elementsEqual(fence), lines[0].starts(with: fence),
+            lines[0].dropFirst(3).allSatisfy(isWordCharacter)
         else { return text }
-        return lines[1..<(lines.count - 1)].joined(separator: "\n")
+        return lines[1..<(lines.count - 1)].map { String($0) }.joined(separator: "\n")
+    }
+
+    /// \w of the evaluation's `re` for one code point: a letter (Lu, Ll, Lt, Lm, Lo), a scalar with a
+    /// numeric value, or "_". Unicode data newer than that of the evaluation's Python can still differ.
+    private static func isWordCharacter(_ scalar: Unicode.Scalar) -> Bool {
+        switch scalar.properties.generalCategory {
+        case .uppercaseLetter, .lowercaseLetter, .titlecaseLetter, .modifierLetter, .otherLetter: true
+        default: scalar.properties.numericType != nil || scalar == "_"
+        }
     }
 
     private static func validated(_ value: JSONValue) throws(EstimationError) -> [FoodItem] {

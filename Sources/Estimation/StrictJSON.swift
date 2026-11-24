@@ -1,6 +1,9 @@
 import Foundation
 
 /// A JSON value. An object is a dictionary because a repeated key is an error, so no order is lost.
+/// Keys are repeated when their scalars are, as in the evaluation. Two keys that differ only in
+/// normalisation are equal as Swift strings, so they share one entry: such an object has a key beyond
+/// those of R5 either way and gets wrong_keys, as there; the message names one of the two.
 enum JSONValue: Equatable {
     case object([String: JSONValue])
     case array([JSONValue])
@@ -111,6 +114,7 @@ private struct Reader {
         defer { depth -= 1 }
         position += 1
         var members: [String: JSONValue] = [:]
+        var keys: Set<[Unicode.Scalar]> = []
         skipWhitespace()
         if peek == Byte.closeBrace {
             position += 1
@@ -121,7 +125,7 @@ private struct Reader {
             guard peek == Byte.quote else { throw error("\(saw) where a string key should start") }
             let keyOffset = position
             let key = try string()
-            guard members[key] == nil else {
+            guard keys.insert(Array(key.unicodeScalars)).inserted else {
                 throw JSONSyntaxError(offset: keyOffset, message: "the key \"\(key)\" is repeated")
             }
             skipWhitespace()
