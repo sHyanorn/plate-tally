@@ -194,6 +194,8 @@ final class ScreenshotTests: XCTestCase {
 
             fill(app.textFields["height"], "175")
             fill(app.textFields["weight"], "70")
+            // The bar above the keyboard covers the age row while the weight is typed.
+            app.buttons["keyboard-done"].tap()
             fill(app.textFields["age"], "30")
             app.buttons["keyboard-done"].tap()
             XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
