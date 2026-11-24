@@ -11,6 +11,7 @@ import UIKit
 /// `-ui-key` starts with a key, `-ui-profile` with a profile, `-ui-seed` with two meals today,
 /// `-ui-limit N` with a daily limit of N, `-ui-reply good|invalid|offline` picks the reply,
 /// `-ui-language zh` starts in Chinese (the tests read the English texts otherwise).
+/// `-ui-calls-unwritable` puts a folder where the call log goes, so no call can be written to it.
 /// `-ui-appearance light|dark` sets the colour scheme of the app. The appearance that the tests set
 /// through XCUIDevice did not reach it.
 /// Release builds have none of this.
@@ -63,8 +64,21 @@ enum UITestHarness {
         let result = AppEnvironment.model(
             folder: folder, keys: keys, clock: { now }, timeZone: TimeZone(identifier: "UTC")!,
             send: transport(reply: option("-ui-reply") ?? "good"))
-        if case .success(let session) = result { seed(session.model) }
+        if case .success(let session) = result {
+            seed(session.model)
+            if arguments.contains("-ui-calls-unwritable") { blockCallLog(in: folder) }
+        }
         return result
+    }
+
+    /// The model has read the log already, so only the writes after a call fail.
+    private static func blockCallLog(in folder: URL) {
+        do {
+            try FileManager.default.createDirectory(
+                at: folder.appending(path: "calls.json"), withIntermediateDirectories: true)
+        } catch {
+            fatalError("UI test: expected a folder in place of calls.json, saw \(error)")
+        }
     }
 
     private static func option(_ name: String) -> String? {

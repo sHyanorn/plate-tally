@@ -93,6 +93,7 @@ struct ItemEditView: View {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 if editor.energyIsEstimate {
                     Text(verbatim: "≈").textRole(.inputUnit).foregroundStyle(Palette.ink2)
+                        .accessibilityIdentifier("item-estimate")
                 }
                 TextField("", text: energyField)
                     .textRole(.inputNumber)

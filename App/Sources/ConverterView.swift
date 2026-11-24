@@ -100,6 +100,8 @@ struct ConverterView: View {
             .padding(.top, 18)
             .padding(.bottom, 8)
             .background(Palette.canvas)
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("converter-bar")
         }
         .onChange(of: form) { problem = nil }
         .designSheet()

@@ -100,6 +100,43 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
+    /// A tap into the energy field types nothing: the energy still follows the grams and stays an estimate
+    /// (R9, R10).
+    func testAFocusOnTheEnergyOfAnItemTypesNothing() {
+        eachAppearance(["-ui-key"], looks: ["light"]) { app, _ in
+            app.buttons["add-meal"].tap()
+            app.buttons["Choose photo"].tap()
+            XCTAssertTrue(app.staticTexts["meal-title"].waitForExistence(timeout: 10))
+            app.buttons["item-0"].tap()
+            let energy = app.textFields["item-kcal"]
+            XCTAssertTrue(energy.waitForExistence(timeout: 5))
+            XCTAssertTrue(app.staticTexts["item-estimate"].exists)
+
+            energy.tap()
+            replaceText(of: app.textFields["item-grams"], with: "300")
+            XCTAssertEqual(energy.value as? String, "390")
+            XCTAssertTrue(app.staticTexts["item-estimate"].exists)
+        }
+    }
+
+    /// The call log cannot be written after the call. The flow says so once, over the draft, and the day does
+    /// not say it again.
+    func testACallLogThatCannotBeWrittenIsReportedOnceOverTheDraft() {
+        eachAppearance(["-ui-key", "-ui-calls-unwritable"], looks: ["light"]) { app, _ in
+            app.buttons["add-meal"].tap()
+            app.buttons["Choose photo"].tap()
+            let alert = app.alerts["Could not save"]
+            XCTAssertTrue(alert.waitForExistence(timeout: 10))
+            XCTAssertTrue(app.staticTexts["meal-title"].waitForExistence(timeout: 5))
+            alert.buttons["OK"].tap()
+            XCTAssertFalse(app.alerts.firstMatch.waitForExistence(timeout: 2))
+
+            app.buttons["meal-save"].tap()
+            XCTAssertTrue(app.staticTexts["day-title"].waitForExistence(timeout: 10))
+            XCTAssertFalse(app.alerts.firstMatch.waitForExistence(timeout: 2))
+        }
+    }
+
     func testAnAnalysisThatFailsShowsItsReasonCodeAndCost() {
         eachAppearance(["-ui-key", "-ui-reply", "invalid"]) { app, look in
             app.buttons["add-meal"].tap()
@@ -183,6 +220,9 @@ final class ScreenshotTests: XCTestCase {
             fill(app.textFields["converter-kj"], "1250")
             XCTAssertEqual(app.textFields["converter-kcal"].value as? String, "299")
             snap("converter-serving", look)
+            // With the keyboard up, the edge of the bar runs below the target menu, not across it.
+            XCTAssertLessThanOrEqual(
+                frame(of: "converter-target", in: app).maxY, frame(of: "converter-bar", in: app).minY)
 
             // Per 100 g, 1520 kJ for 35 g eaten are 127.27 kcal and 532 kJ.
             app.buttons["Per 100 g"].tap()
@@ -214,6 +254,21 @@ final class ScreenshotTests: XCTestCase {
             app.buttons["converter-add"].tap()
             XCTAssertTrue(app.staticTexts["day-title"].waitForExistence(timeout: 5))
             XCTAssertEqual(app.staticTexts["intake"].label, "≈ 127 kcal")
+        }
+    }
+
+    /// A tap into the field that shows the conversion types nothing: the kJ stay as typed.
+    func testAFocusOnTheConvertedEnergyTypesNothing() {
+        eachAppearance(looks: ["light"]) { app, _ in
+            XCTAssertTrue(app.staticTexts["day-title"].waitForExistence(timeout: 10))
+            app.buttons["convert"].tap()
+            XCTAssertTrue(app.staticTexts["converter-title"].waitForExistence(timeout: 5))
+            fill(app.textFields["converter-kj"], "1250")
+            XCTAssertEqual(app.textFields["converter-kcal"].value as? String, "299")
+
+            app.textFields["converter-kcal"].tap()
+            app.textFields["converter-name"].tap()
+            XCTAssertEqual(app.textFields["converter-kj"].value as? String, "1250")
         }
     }
 
@@ -305,6 +360,11 @@ final class ScreenshotTests: XCTestCase {
     private func hasText(_ text: String, in app: XCUIApplication) -> Bool {
         let labelled = NSPredicate(format: "label CONTAINS %@", text)
         return app.descendants(matching: .any).matching(labelled).firstMatch.exists
+    }
+
+    /// The frame of the element with the identifier, whatever its type.
+    private func frame(of id: String, in app: XCUIApplication) -> CGRect {
+        app.descendants(matching: .any).matching(identifier: id).firstMatch.frame
     }
 
     private func fill(_ field: XCUIElement, _ text: String) {
