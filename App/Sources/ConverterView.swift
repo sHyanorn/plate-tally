@@ -95,9 +95,10 @@ struct ConverterView: View {
                 .accessibilityIdentifier("converter-add")
             }
             .padding(.horizontal, Metrics.margin)
-            // 18 pt above: with the keyboard up per 100 g, the edge of the bar then falls in the gap below
-            // the kcal field and does not cut across the row after it.
-            .padding(.top, 18)
+            // With the keyboard up, the edge of the bar falls in a gap of the form: 18 pt above the tag put it
+            // below the kcal field, and 8 pt above the button alone put it below the target menu. Measured on the
+            // iPhone 17 simulator at the default text size; another screen or size can move it onto a row.
+            .padding(.top, form.portionKcal == nil ? 8 : 18)
             .padding(.bottom, 8)
             .background(Palette.canvas)
             .accessibilityElement(children: .contain)
