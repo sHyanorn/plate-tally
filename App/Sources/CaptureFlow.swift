@@ -14,6 +14,7 @@ struct CaptureFlow: View {
         let cost: Decimal?
     }
 
+    @Environment(\.scenePhase) private var scenePhase
     @State private var draft: Draft?
 
     var body: some View {
@@ -26,6 +27,13 @@ struct CaptureFlow: View {
                 AnalysisView(
                     model: model, photo: photo,
                     onResult: { meal, cost in draft = Draft(meal: meal, cost: cost) }, onClose: onFinish)
+            }
+        }
+        // The system keeps a picture of the screen for the app switcher when the app leaves the foreground.
+        // The photo is never stored (R11), so the canvas covers it from the moment the app is no longer active.
+        .overlay {
+            if scenePhase != .active {
+                Palette.canvas.ignoresSafeArea()
             }
         }
     }
