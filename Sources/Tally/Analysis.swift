@@ -19,24 +19,20 @@ public enum Analysis {
         public let items: Result<[FoodItem], Problem>
     }
 
-    /// Why an analysis may not start, or nil. Without a key (R20) or at the daily limit (R19) nothing is sent.
-    public static func refusal(hasKey: Bool, log: CallLog, on day: LocalDay, limit: Int) -> Problem? {
+    /// Why an analysis may not start, or nil: no key (R20), or the daily limit reached by the calls logged
+    /// and those in flight (R19).
+    public static func refusal(hasKey: Bool, log: CallLog, inFlight: Int, on day: LocalDay, limit: Int) -> Problem? {
         guard hasKey else { return Problem(MissingKey()) }
         do throws(CostError) {
-            try log.requireRoom(on: day, limit: limit)
+            try log.requireRoom(on: day, limit: limit, inFlight: inFlight)
         } catch {
             return Problem(error)
         }
         return nil
     }
 
-    /// Makes one call and never repeats it (R7). The caller adds `call` to its log.
-    public static func run(
-        image: JPEGImage, hasKey: Bool, log: CallLog, at: LocalDateTime, limit: Int, send: Transport
-    ) async -> Outcome {
-        if let refusal = refusal(hasKey: hasKey, log: log, on: at.day, limit: limit) {
-            return Outcome(call: nil, items: .failure(refusal))
-        }
+    /// Makes one call and never repeats it (R7). The caller asks `refusal` first and adds `call` to its log.
+    public static func run(image: JPEGImage, at: LocalDateTime, send: Transport) async -> Outcome {
         let response: HTTPResponse
         do throws(TransportFailure) {
             response = try await send(Estimation.request(image: image))

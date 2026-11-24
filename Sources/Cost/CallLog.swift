@@ -77,9 +77,10 @@ public struct CallLog: Equatable, Sendable {
             .reduce(Decimal.zero) { $0 + $1.costUSD }
     }
 
-    /// Throws when the day already has `limit` calls (R19). The caller passes the limit of the settings.
-    public func requireRoom(on day: LocalDay, limit: Int) throws(CostError) {
-        let used = count(on: day)
+    /// Throws when the day already has `limit` calls, logged or in flight (R19). A call in flight has no
+    /// usage yet, so the caller counts it. The caller passes the limit of the settings.
+    public func requireRoom(on day: LocalDay, limit: Int, inFlight: Int) throws(CostError) {
+        let used = count(on: day) + inFlight
         guard used < limit else { throw .limitReached(limit: limit, count: used) }
     }
 }

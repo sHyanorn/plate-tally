@@ -32,15 +32,19 @@ func responseBody(text: String, input: Int = 1200, output: Int = 110) throws -> 
 let twoItems = #"{"items":[{"name":"rice","grams":150,"kcal":195},{"name":"chicken","grams":100,"kcal":165}]}"#
 let usd0035 = Decimal(string: "0.0035")!
 
-/// A transport that records what it was given and answers with one fixed result.
+/// A transport that records what it was given and answers with one fixed result, after a delay if given.
 final class RecordingTransport: Sendable {
     private let requests = Mutex<[HTTPRequest]>([])
     private let answer: Result<HTTPResponse, TransportFailure>
+    private let delay: Duration
 
-    init(_ answer: Result<HTTPResponse, TransportFailure>) { self.answer = answer }
+    init(_ answer: Result<HTTPResponse, TransportFailure>, delay: Duration = .zero) {
+        self.answer = answer
+        self.delay = delay
+    }
 
-    convenience init(status: Int = 200, body: Data) {
-        self.init(.success(HTTPResponse(status: status, body: body)))
+    convenience init(status: Int = 200, body: Data, delay: Duration = .zero) {
+        self.init(.success(HTTPResponse(status: status, body: body)), delay: delay)
     }
 
     var sent: [HTTPRequest] { requests.withLock { $0 } }
@@ -48,6 +52,7 @@ final class RecordingTransport: Sendable {
     var transport: Transport {
         { [self] request throws(TransportFailure) in
             requests.withLock { $0.append(request) }
+            if delay > .zero { try? await Task.sleep(for: delay) }
             return try answer.get()
         }
     }

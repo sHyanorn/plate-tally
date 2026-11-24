@@ -120,15 +120,21 @@ public final class AppModel {
 
     // MARK: Analysis
 
-    /// Why an analysis may not start now, or nil (R19, R20).
-    public var analysisRefusal: Problem? {
-        Analysis.refusal(hasKey: hasKey, log: callLog, on: today, limit: settings.dailyCallLimit)
-    }
+    /// Analyses whose outcome is not recorded yet. Each counts against the daily limit from before its request
+    /// leaves, so two analyses that overlap cannot both pass the limit (R19).
+    private var callsInFlight = 0
 
-    /// Makes one call and records it when the API billed it.
+    /// Why an analysis may not start now, or nil (R19, R20).
+    public var analysisRefusal: Problem? { refusal(on: today) }
+
+    /// Makes one call and records it when the API billed it. The check and the count of the call in flight
+    /// happen on the main actor before the first wait, so no other analysis passes the check between them.
     public func analyze(_ image: JPEGImage) async -> Analysis.Outcome {
-        let outcome = await Analysis.run(
-            image: image, hasKey: hasKey, log: callLog, at: now, limit: settings.dailyCallLimit, send: send)
+        let at = now
+        if let refusal = refusal(on: at.day) { return Analysis.Outcome(call: nil, items: .failure(refusal)) }
+        callsInFlight += 1
+        let outcome = await Analysis.run(image: image, at: at, send: send)
+        callsInFlight -= 1
         if let call = outcome.call {
             callLog.add(call)
             do throws(StoreError) {
@@ -141,6 +147,11 @@ public final class AppModel {
     }
 
     public func dismissStoreProblem() { storeProblem = nil }
+
+    private func refusal(on day: LocalDay) -> Problem? {
+        Analysis.refusal(
+            hasKey: hasKey, log: callLog, inFlight: callsInFlight, on: day, limit: settings.dailyCallLimit)
+    }
 
     private func write<Value: StoredValue>(_ value: Value, to file: FileStore<Value>) throws(Problem) {
         do throws(StoreError) { try file.save(value) } catch { throw Problem(error) }

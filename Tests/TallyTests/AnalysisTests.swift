@@ -16,49 +16,38 @@ private func logWithCalls(_ count: Int, on day: String = "2026-11-23") throws ->
     return log
 }
 
-private func run(
-    _ transport: RecordingTransport, hasKey: Bool = true, log: CallLog = CallLog(), limit: Int = 30
-) async throws -> Analysis.Outcome {
-    await Analysis.run(
-        image: try testImage(), hasKey: hasKey, log: log, at: noon, limit: limit, send: transport.transport)
+private func run(_ transport: RecordingTransport) async throws -> Analysis.Outcome {
+    await Analysis.run(image: try testImage(), at: noon, send: transport.transport)
 }
 
+/// The check before a call. That nothing is sent when it refuses is tested on AppModel, which asks it.
 @Suite struct RefusalTests {
-    @Test func withoutAKeyNothingIsSent() async throws {
-        let transport = RecordingTransport(status: 200, body: try responseBody(text: twoItems))
-        let outcome = try await run(transport, hasKey: false)
-        #expect(outcome.call == nil)
-        #expect(outcome.items == .failure(Problem(MissingKey())))
-        #expect(transport.sent.isEmpty)
-    }
-
     @Test func theMissingKeyIsSaidInThreeParts() {
         let problem = Problem(MissingKey())
         #expect(problem.description == "no API key is set: expected a key saved in settings, saw no key")
     }
 
-    @Test func atTheLimitNothingIsSentAndTheLimitAndTheCountAreSaid() async throws {
-        let transport = RecordingTransport(status: 200, body: try responseBody(text: twoItems))
-        let outcome = try await run(transport, log: logWithCalls(3), limit: 3)
-        #expect(outcome.call == nil)
-        guard case .failure(let problem) = outcome.items else { Issue.record("expected a refusal"); return }
-        #expect(problem.description == "the daily call limit is reached: expected fewer than 3 calls today, saw 3 calls")
-        #expect(transport.sent.isEmpty)
+    @Test func atTheLimitTheLimitAndTheCountAreSaid() throws {
+        let problem = try Analysis.refusal(hasKey: true, log: logWithCalls(3), inFlight: 0, on: noon.day, limit: 3)
+        #expect(problem?.description == "the daily call limit is reached: expected fewer than 3 calls today, saw 3 calls")
     }
 
-    @Test func callsOfAnotherDayDoNotCount() async throws {
-        let transport = RecordingTransport(status: 200, body: try responseBody(text: twoItems))
-        let outcome = try await run(transport, log: logWithCalls(5, on: "2026-11-22"), limit: 3)
-        #expect(outcome.call != nil)
+    @Test func callsOfAnotherDayDoNotCount() throws {
+        #expect(try Analysis.refusal(hasKey: true, log: logWithCalls(5, on: "2026-11-22"), inFlight: 0, on: noon.day, limit: 3) == nil)
+    }
+
+    @Test func aCallInFlightCountsAgainstTheLimit() throws {
+        #expect(try Analysis.refusal(hasKey: true, log: logWithCalls(2), inFlight: 0, on: noon.day, limit: 3) == nil)
+        #expect(try Analysis.refusal(hasKey: true, log: logWithCalls(2), inFlight: 1, on: noon.day, limit: 3)?.saw == "3 calls")
     }
 
     @Test func theRefusalCanBeAskedBeforeAPhotoIsTaken() throws {
         let day = noon.day
-        #expect(Analysis.refusal(hasKey: true, log: CallLog(), on: day, limit: 30) == nil)
-        #expect(Analysis.refusal(hasKey: false, log: CallLog(), on: day, limit: 30)?.what == "no API key is set")
-        #expect(try Analysis.refusal(hasKey: true, log: logWithCalls(30), on: day, limit: 30)?.saw == "30 calls")
+        #expect(Analysis.refusal(hasKey: true, log: CallLog(), inFlight: 0, on: day, limit: 30) == nil)
+        #expect(Analysis.refusal(hasKey: false, log: CallLog(), inFlight: 0, on: day, limit: 30)?.what == "no API key is set")
+        #expect(try Analysis.refusal(hasKey: true, log: logWithCalls(30), inFlight: 0, on: day, limit: 30)?.saw == "30 calls")
         // A missing key comes first, because the limit cannot be fixed by the user the same way.
-        #expect(try Analysis.refusal(hasKey: false, log: logWithCalls(30), on: day, limit: 30)?.what == "no API key is set")
+        #expect(try Analysis.refusal(hasKey: false, log: logWithCalls(30), inFlight: 0, on: day, limit: 30)?.what == "no API key is set")
     }
 }
 

@@ -111,9 +111,9 @@ private func log(_ calls: CallRecord...) -> CallLog {
 
     @Test func the30thCallIsAllowedAndThe31stRefused() throws {
         let today = try day("2026-11-23")
-        #expect(throws: Never.self) { try self.callsToday(29).requireRoom(on: today, limit: CallLog.defaultDailyLimit) }
+        #expect(throws: Never.self) { try self.callsToday(29).requireRoom(on: today, limit: CallLog.defaultDailyLimit, inFlight: 0) }
         let error = #expect(throws: CostError.self) {
-            try self.callsToday(30).requireRoom(on: today, limit: CallLog.defaultDailyLimit)
+            try self.callsToday(30).requireRoom(on: today, limit: CallLog.defaultDailyLimit, inFlight: 0)
         }
         #expect(error == .limitReached(limit: 30, count: 30))
         #expect(error?.description == "the daily call limit is reached: expected fewer than 30 calls today, saw 30 calls")
@@ -121,15 +121,24 @@ private func log(_ calls: CallRecord...) -> CallLog {
 
     @Test func theLimitComesFromTheCaller() throws {
         let today = try day("2026-11-23")
-        #expect(throws: CostError.limitReached(limit: 5, count: 5)) { try self.callsToday(5).requireRoom(on: today, limit: 5) }
-        #expect(throws: Never.self) { try self.callsToday(5).requireRoom(on: today, limit: 6) }
-        #expect(throws: CostError.limitReached(limit: 0, count: 0)) { try CallLog().requireRoom(on: today, limit: 0) }
+        #expect(throws: CostError.limitReached(limit: 5, count: 5)) { try self.callsToday(5).requireRoom(on: today, limit: 5, inFlight: 0) }
+        #expect(throws: Never.self) { try self.callsToday(5).requireRoom(on: today, limit: 6, inFlight: 0) }
+        #expect(throws: CostError.limitReached(limit: 0, count: 0)) { try CallLog().requireRoom(on: today, limit: 0, inFlight: 0) }
     }
 
     @Test func theLimitCountsOnlyTheDayAsked() throws {
         let full = try callsToday(30)
-        #expect(throws: Never.self) { try full.requireRoom(on: try day("2026-11-24"), limit: 30) }
-        #expect(throws: Never.self) { try full.requireRoom(on: try day("2026-11-22"), limit: 30) }
+        #expect(throws: Never.self) { try full.requireRoom(on: try day("2026-11-24"), limit: 30, inFlight: 0) }
+        #expect(throws: Never.self) { try full.requireRoom(on: try day("2026-11-22"), limit: 30, inFlight: 0) }
+    }
+
+    /// A call in flight has no record yet and counts all the same, so overlapping analyses share the limit.
+    @Test func callsInFlightCountWithTheLoggedOnes() throws {
+        let today = try day("2026-11-23")
+        #expect(throws: Never.self) { try self.callsToday(4).requireRoom(on: today, limit: 5, inFlight: 0) }
+        #expect(throws: CostError.limitReached(limit: 5, count: 5)) {
+            try self.callsToday(4).requireRoom(on: today, limit: 5, inFlight: 1)
+        }
     }
 
     @Test func callsPastTheLimitAreStillCounted() throws {
@@ -161,7 +170,7 @@ private func log(_ calls: CallRecord...) -> CallLog {
     @Test func aReadLogCountsAndLimitsAsBefore() throws {
         let again = try CallLog(decoding: Data(oneCall.utf8))
         #expect(again.count(on: try day("2026-11-23")) == 1)
-        #expect(throws: CostError.limitReached(limit: 1, count: 1)) { try again.requireRoom(on: try day("2026-11-23"), limit: 1) }
+        #expect(throws: CostError.limitReached(limit: 1, count: 1)) { try again.requireRoom(on: try day("2026-11-23"), limit: 1, inFlight: 0) }
     }
 
     /// A price that changes later must not change what an old call cost.

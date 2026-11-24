@@ -231,6 +231,26 @@ private let testVector = {
         #expect(rig.transport.sent.count == 1)
     }
 
+    /// The second analysis starts while the first waits for the network. Only one request may leave.
+    @Test func twoAnalysesAtOnceDoNotBothPassALimitOfOne() async throws {
+        let rig = try Rig()
+        rig.transport = RecordingTransport(body: try responseBody(text: twoItems), delay: .milliseconds(100))
+        let model = try rig.model()
+        var settings = UserSettings()
+        settings.dailyCallLimit = 1
+        try model.update(settings)
+        let image = try testImage()
+        async let first = model.analyze(image)
+        async let second = model.analyze(image)
+        let outcomes = await [first, second]
+        #expect(rig.transport.sent.count == 1)
+        #expect(outcomes.filter { $0.call != nil }.count == 1)
+        #expect(model.callLog.count(on: model.today) == 1)
+        let refused = outcomes.first { $0.call == nil }
+        guard case .failure(let problem)? = refused?.items else { Issue.record("expected a refusal"); return }
+        #expect(problem.description == "the daily call limit is reached: expected fewer than 1 calls today, saw 1 calls")
+    }
+
     @Test func withoutAKeyNothingIsSentAndTheScreenCanSayWhy() async throws {
         let rig = try Rig()
         rig.key.on = false
