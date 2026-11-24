@@ -17,6 +17,8 @@ struct SettingsView: View {
     @State private var heightText: String
     @State private var weightText: String
     @State private var ageText: String
+    /// The identifier of the field being typed in. The number pads have no key that ends the typing.
+    @FocusState private var focused: String?
 
     init(model: AppModel, keys: any KeyStore) {
         self.model = model
@@ -47,6 +49,7 @@ struct SettingsView: View {
                                 .textInputAutocapitalization(.never)
                                 .autocorrectionDisabled()
                                 .tint(Palette.moss)
+                                .focused($focused, equals: "api-key")
                                 .accessibilityIdentifier("api-key")
                             Button("Save key", action: saveKey)
                                 .buttonStyle(SmallPillStyle(prominent: false))
@@ -123,6 +126,12 @@ struct SettingsView: View {
             }
         }
         .background(Palette.canvas)
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { focused = nil }.accessibilityIdentifier("keyboard-done")
+            }
+        }
         .onChange(of: heightText) { _, text in
             change { $0.heightCm = try? Number.parse(text, field: "Height") }
         }
@@ -165,6 +174,7 @@ struct SettingsView: View {
                 .multilineTextAlignment(.trailing)
                 .textRole(.name)
                 .tint(Palette.moss)
+                .focused($focused, equals: id)
                 .accessibilityIdentifier(id)
         }
         .settingsRow()
