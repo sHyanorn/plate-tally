@@ -1,5 +1,7 @@
+import ImageIO
 import Testing
 import UIKit
+import UniformTypeIdentifiers
 
 @testable import PlateTally
 
@@ -40,19 +42,53 @@ import UIKit
         #expect(photo.jpeg.height == 768)
     }
 
-    /// A phone held upright stores a landscape image with the orientation `.right`.
-    @Test func theOrientationIsAppliedToThePixels() throws {
-        let stored = try #require(picture(width: 300, height: 200).cgImage)
-        let turned = UIImage(cgImage: stored, scale: 1, orientation: .right)
-        #expect(turned.size == CGSize(width: 200, height: 300))
-        let photo = try PhotoPrep.photo(from: turned)
-        #expect(photo.jpeg.width == 200)
-        #expect(photo.jpeg.height == 300)
+    /// A phone held upright stores a landscape bitmap with the orientation `.right`. Here the stored bitmap is red
+    /// on its left half and blue on its right: turned a quarter, the border runs across the photo; stretched
+    /// into the box without turning, it would run down it.
+    @Test func theOrientationTurnsThePixels() throws {
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        let stored = UIGraphicsImageRenderer(size: CGSize(width: 300, height: 200), format: format).image { context in
+            UIColor.red.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 150, height: 200))
+            UIColor.blue.setFill()
+            context.fill(CGRect(x: 150, y: 0, width: 150, height: 200))
+        }
+        let turned = UIImage(cgImage: try #require(stored.cgImage), scale: 1, orientation: .right)
+        let pixels = try #require(try PhotoPrep.photo(from: turned).thumbnail.cgImage)
+        #expect(pixels.width == 200 && pixels.height == 300)
+
+        let context = try #require(
+            CGContext(
+                data: nil, width: 200, height: 300, bitsPerComponent: 8, bytesPerRow: 800,
+                space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+        context.draw(pixels, in: CGRect(x: 0, y: 0, width: 200, height: 300))
+        let bytes = try #require(context.data).assumingMemoryBound(to: UInt8.self)
+        func isRed(x: Int, y: Int) -> Bool { bytes[(y * 200 + x) * 4] > 128 }
+        #expect(isRed(x: 20, y: 20) == isRed(x: 180, y: 20))
+        #expect(isRed(x: 20, y: 280) == isRed(x: 180, y: 280))
+        #expect(isRed(x: 100, y: 20) != isRed(x: 100, y: 280))
     }
 
-    @Test func theSentBytesCarryNoExifSegment() throws {
-        let photo = try PhotoPrep.photo(from: picture(width: 640, height: 480))
+    /// The picture carries Exif with a time, a position and a device, as one from a camera does.
+    @Test func theSentBytesCarryNoExifOfThePicture() throws {
+        let data = NSMutableData()
+        let destination = try #require(
+            CGImageDestinationCreateWithData(data, UTType.jpeg.identifier as CFString, 1, nil))
+        let metadata: [CFString: Any] = [
+            kCGImagePropertyExifDictionary: [kCGImagePropertyExifDateTimeOriginal: "2026:11:23 12:30:00"],
+            kCGImagePropertyGPSDictionary: [kCGImagePropertyGPSLatitude: 33.87, kCGImagePropertyGPSLatitudeRef: "S"],
+            kCGImagePropertyTIFFDictionary: [kCGImagePropertyTIFFModel: "Probe"],
+        ]
+        CGImageDestinationAddImage(
+            destination, try #require(picture(width: 640, height: 480).cgImage), metadata as CFDictionary)
+        #expect(CGImageDestinationFinalize(destination))
+        let input = data as Data
+        #expect(input.range(of: Data("Exif".utf8)) != nil)
+
+        let photo = try PhotoPrep.photo(from: try #require(UIImage(data: input)))
         #expect(photo.jpeg.bytes.range(of: Data("Exif".utf8)) == nil)
+        #expect(photo.jpeg.bytes.range(of: Data("Probe".utf8)) == nil)
         #expect(photo.jpeg.bytes.starts(with: [0xFF, 0xD8]))
     }
 
