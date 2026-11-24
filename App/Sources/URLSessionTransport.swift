@@ -6,13 +6,16 @@ import Tally
 /// The one place that talks to the network (R22). It adds the key just before the request leaves, so the
 /// key is in no record, no log and no package code (R23). It never retries (R7).
 struct URLSessionTransport: Sendable {
-    private static let timeout: TimeInterval = 60
-
     let keys: any KeyStore
     let session: URLSession
 
-    /// The default session keeps no cache and no cookies. It follows no redirect.
+    /// Ephemeral by default, so nothing is cached on disk. An ephemeral configuration still keeps cookies in
+    /// memory and times only the wait between two packets, so the session stores and sends no cookie and gives
+    /// the whole call 60 s (D015). It follows no redirect.
     init(keys: any KeyStore, configuration: URLSessionConfiguration = .ephemeral) {
+        configuration.httpCookieStorage = nil
+        configuration.httpShouldSetCookies = false
+        configuration.timeoutIntervalForResource = 60
         self.keys = keys
         self.session = URLSession(configuration: configuration, delegate: RedirectRefusal(), delegateQueue: nil)
     }
@@ -32,7 +35,7 @@ struct URLSessionTransport: Sendable {
             let missing = MissingKey()
             throw TransportFailure(what: missing.what, expected: missing.expected, saw: missing.saw)
         }
-        var urlRequest = URLRequest(url: request.url, timeoutInterval: Self.timeout)
+        var urlRequest = URLRequest(url: request.url)
         urlRequest.httpMethod = request.method
         for (name, value) in request.headers { urlRequest.setValue(value, forHTTPHeaderField: name) }
         urlRequest.setValue(key, forHTTPHeaderField: Estimation.keyHeader)
