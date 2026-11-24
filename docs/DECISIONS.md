@@ -146,6 +146,8 @@ The Linux runner image has its own Swift, which can be newer than that of Xcode 
 
 Alternatives: Leave thinking out. Request a fallback. Read the JSON with the standard readers. Hold the prompt as a package resource through a symbolic link into eval/, whose handling in Xcode cannot be tested here. Leave the metadata to the encoder of the app. Use the Swift of the runner image.
 
+Update 2026-11-24: "The usage of every reply that has one is returned with the result, so a failed call is costed." now also holds for a status other than 200 and a broken envelope, and a token count below 0 is no usage. "It rejects a repeated key, as the evaluation did" now means a key with the same scalars (D019).
+
 ## D013: Record formats
 
 Date: 2026-11-23
@@ -155,6 +157,8 @@ Decision: Meal records and the call log are JSON files that the package defines.
 Rationale: A version field turns a format change into a clear error, and reading it before anything else means that a newer file reports its version and not a missing field. Local calendar values keep a record on its day when the time zone changes. A fixed Gregorian calendar keeps the regional settings of the user, such as another year numbering or a 13th month, out of the stored day. The caller gives the id so that the package stays free of random numbers. A stored total or density could disagree with the items after an edit. Scaling can end one ulp off, so a restore at 5000 kcal would be refused and an unchanged weight would change the kcal. A file edited by hand meets the bounds of an edit. Decimal sums are exact. As a JSON number a Decimal would be read back by other readers as a binary fraction, so it is stored as a string. The reader accepts only ASCII digits with at most one decimal point that has a digit on each side, because Decimal(string:) reads a prefix and ignores the rest. A stored cost is not worked out again, so a later change of the price table cannot rewrite what a past call cost. A call without usage costs nothing, and the limit exists to bound spending.
 
 Alternatives: Store instants (a change of time zone moves records between days). Store the total. Store the energy per 100 g with each item. Count every attempt against the limit. Work out the cost again on every read.
+
+Update 2026-11-24: "A call that returns no usage, such as an HTTP error, is not logged and does not count against the daily limit." no longer holds: a call counts against the limit from before its request leaves and stops counting when it ends without usage, and an HTTP error that states its usage is logged and counted (D019).
 
 ## D014: Depth limit and line ends of the reply parser
 
@@ -167,6 +171,8 @@ Rationale: The parser is recursive, so the nesting of a reply is the depth of th
 The parser and the evaluation still differ on four kinds of input, found by running both on generated replies. At the edge of a reply or a name, U+001C to U+001F are removed by the evaluation's str.strip() and kept by Foundation's whitespace set, so such a reply is not_json here and valid there, and a name that is one of them has length 1 here and 0 there. U+200B is the reverse: the evaluation keeps it and Foundation trims it. In the language word after an opening fence, the evaluation tests code points against \w and Swift tests Characters. A letter followed by a combining mark or a joiner (a with U+0301, x with U+200D), a circled letter (U+24B6) and a letter that Unicode 15.1, the data of Python 3.13, does not assign are part of the word here and the reply is valid, and there the first line is not a fence and the reply is not_json. An escape of a lone surrogate (U+D800 to U+DFFF) in a string is not_json here and accepted there. Nesting deeper than 16 levels is not_json here, and there it gets the reason code of R5 (not_object, wrong_keys, bad_value), or an uncaught RecursionError at 100,000 levels. None of the 1,200 recorded replies has any of these inputs.
 
 Alternatives: No limit. A limit of 3. A parser with a stack of its own instead of recursion, which is more code for a reply the model does not produce. The whitespace set of the evaluation, which needs five scalars kept by hand for a difference that no recorded reply shows.
+
+Update 2026-11-24: "In the language word after an opening fence, the evaluation tests code points against \w and Swift tests Characters." no longer holds: the word is judged one scalar at a time against \w, and the sentence after it holds only for a letter that Unicode 15.1 does not assign (D019).
 
 ## D015: App state, files, the transport seam and the languages
 
@@ -188,6 +194,8 @@ Rationale: What the package holds is tested on Linux without a network or a key 
 
 Alternatives: The model in the app target, which Linux cannot test. The key in the package behind a keychain protocol. UserDefaults or SwiftData for the records, which would leave D013 unused. Writing the call log before counting the call. A default profile. The default URLSession configuration, which keeps a cache on disk. JPEG quality 1.0. The language of the device. Translated error texts.
 
+Update 2026-11-24: "The app builds the transport on URLSession with the ephemeral configuration (no cache, no cookies) and a timeout of 60 s." no longer holds: the transport caches nothing on disk, stores and sends no cookie, gives the whole call 60 s and follows no redirect. "A request that times out, or is cancelled after it left the device, returns no usage, so the app neither costs nor counts it." holds once it has ended; until then it counts against the limit. "The limit counts what returns usage (D013)" now also counts a call in flight until it ends (D019).
+
 ## D016: Tests of the app without a Mac
 
 Date: 2026-11-23
@@ -203,6 +211,8 @@ Not covered: the app has never run on a device and has never called the model; e
 Rationale: A canned reply, a fixed clock and a fixed time zone take the network, the date and the zone out of what a screenshot shows, and no test calls a paid API (R24). The screenshots are the only view of the screens before an install, so each state is kept in both colour schemes. A UI test runs in another process, so a harness inside the app binary is the direct way to replace the network and the key. Leaving it out of the Release build keeps R22 and R23 true for the build that is installed. The package tests run on the simulator as well as on Linux, because the Foundation of the platform can differ from that of Linux (D012).
 
 Alternatives: Rendering the views to images in unit tests. A second app target for the tests. No UI tests, which leaves the screens unchecked until the first install. UI tests against the real API with a key, which R24 forbids.
+
+Update 2026-11-24: "The unit tests cover the photo (long side, pixels against points, upright orientation), the transport against a stub protocol inside the process, and the keychain store against the keychain of the simulator." is no longer the whole list. The tests added to the package and the app are listed under Tests in D019.
 
 ## D017: One accent colour and the price tag
 
@@ -223,3 +233,41 @@ Decision: A converter turns the energy on a food label into one item. Per servin
 Rationale: Standard 1.2.8 of the Australia New Zealand Food Standards Code requires the energy on a label in kJ; kcal are optional beside it. Schedule 11, section S11-2(4), of the same Code sets the equation from kJ to kcal for labels, and its factor is 4.18. With 4.184 kJ per kcal, 1000 kJ would be 239.0 kcal instead of 239.2, 0.1% less. "=" marks the defined conversion of a typed number; "≈" marks that the energy of an item stays an estimate. A kcal stored without rounding gives the typed number back: 1000 kJ are stored as 1000 / 4.18 kcal (239.2344...) and shown in kJ as 1000. A grouped number in an editable field would be read back wrongly, because the parser takes a comma as the decimal sign: "1,250" would be 1.25. An item above 5,000 kcal (R5) is refused with the existing error in kcal. In kJ that is above 20,900 kJ per item or per serving, and per 100 g it depends on the grams eaten. The forms need no error of their own.
 
 Alternatives: 4.184 kJ per kcal. Storing kJ beside kcal. Rounding the stored kcal. A kJ field in the item form only, without a converter. Adding the item to a meal of the day that the day screen shows.
+
+Update 2026-11-24: "An item above 5,000 kcal (R5) is refused with the existing error in kcal." no longer holds for a result above the bound by at most 1e-9, which is 5,000 kcal, as in the scaling of an item (D019).
+
+## D019: Billing by usage, the call in flight, scalars, the transport and the screens
+
+Date: 2026-11-24
+
+Decision: This entry changes D012 to D016 and D018. Each of them has an update line that quotes the sentence it changes.
+
+Usage. Estimation.read(status:body:) reads the usage of a response first and on its own. A response whose usage has input_tokens and output_tokens, each 0 or more, gives a reply: the call is costed, logged and counted whatever the status and whatever else is wrong with the response, and what is wrong is a failure with its reason code, http included. A response without usage, or with a count below 0, throws.
+
+The call in flight. AppModel counts an analysis against the daily limit on the main actor before its request leaves, and stops counting it when the outcome returns. A billed call is then in the log.
+
+The call log. CallLog.encoded() checks every cost with the rule of the reader and throws when one fails it, as a ledger is checked (D015).
+
+Scalars. The lines of a fence are compared scalar by scalar. The language word is judged one scalar at a time against \w of the evaluation: a letter, a scalar with a numeric value, or "_". A key is repeated when its scalars are. Two keys that differ only in normalisation still share one entry of the dictionary, so the object gets wrong_keys, as in the evaluation, and the message names one of the two.
+
+The converter at the bound. A converted result above 5,000 kcal by at most 1e-9 is 5,000 kcal, through keepingTheBound, the function that the scaling of an item uses.
+
+The transport. The session stores and sends no cookie, gives the whole call 60 s and follows no redirect. A 3xx is the final response, and the package reports it as http.
+
+The text a field shows. ItemEditor.typeEnergy and EnergyConverter.type ignore a text equal to the one the field shows.
+
+The capture flow. While the app is not active, the canvas covers it. It shows the alert of a call log that cannot be written, and the day shows that alert only while no capture flow is open.
+
+Backups. The three files stay in Application Support (D015), and the app does not exclude them from the device's backups.
+
+Screens. The bar of the day has the canvas behind it. The bar of the converter has 8 pt above the button alone and 18 pt above the tag of the result. Settings has a Done key above the keyboard, an existing string.
+
+Tests. The package tests add a call in flight against the limit, two analyses at once with a limit of one, usage with a broken envelope or another status, a negative token count, a cost that the reader would refuse, a fence of U+1FEF, the word characters, keys that differ only in normalisation, a label of exactly 5,000 kcal in kJ and in kcal, and the shown text handed back to both forms. The unit tests of the app now turn a two-colour picture upright and send a picture that carries Exif, and they add a refused redirect and the cookie and timeout settings of the session. The UI tests add a focus on the energy of an item and on the converted field, an unwritable call log (-ui-calls-unwritable) and the edge of the converter bar with the keyboard up. The settings screenshot is taken after the Done key closes the keyboard.
+
+Rationale: A response that states its tokens was billed, and the limit exists to bound spending (D013). Counted only when it returned, a call let a second analysis that overlapped it pass the limit. A token count of -1 gave a cost of -0.000002 USD, which the log wrote and the reader refused, so the app could not start again. Swift compares strings by canonical equivalence and the evaluation compares code points: three U+1FEF, which decomposes to the backtick, passed as a fence, and two keys that differ only in normalisation were a repeated key (not_json) where the evaluation sees wrong_keys. 1045 kJ per 100 g for 2,000 g eaten came out at 5000.000000000001 kcal, so the converter refused in kJ a label that it accepts in kcal. A followed redirect would carry the key, and with a 307 the photo, to another host in a second request (R4, R22, R23). The ephemeral configuration still keeps cookies in memory, and the timeout of a request bounds only the wait between two packets. The system keeps a picture of the screen for the app switcher, and the photo is never stored (R11). The files stay in the backups by the owner's choice, so the records are as private as the backups.
+
+A text field hands its text back when it gains or loses the focus. Taken as typed, it stopped the energy of an item from following its grams (195 kcal at 150 g stayed 195 at 300 g, where 390 was expected) and turned 1250 typed kJ into 1249.8, the rounded kcal converted back. From the day, the alert of the call log closed the cover of the capture flow, and the draft meal was lost. With the keyboard up per serving on the iPhone 17 simulator and 18 pt above the button, the target menu of the converter ended at 489.3 pt and its bar began at 482.0 pt; with 8 pt the edge lies below the menu, which a UI test checks. The number pads of settings have no key that ends the typing, and the pad left only the top of the sex row in sight.
+
+The costs. A call billed with an error counts against the limit as a good one does. A call in flight takes one place of the limit, and gives it back when it ends without usage. With two keys that differ only in normalisation the message names one of them, and Unicode data newer than that of the evaluation can still judge a word character differently. No test checks the picture of the screen that the system keeps. A 3xx is an error even where following it would have worked, and a call that needs more than 60 s in all fails. Pasting exactly the text a field shows is not taken as typed, so the energy of an item stays an estimate. The paddings of the converter bar hold on one simulator at the default text size; another screen or text size can put the edge on a row. The bar above the keyboard covers the age row while the weight is typed.
+
+Alternatives: Count only what returns usage (D013). Let the reader take a negative cost. Compare the fence and the keys as Swift strings. Follow redirects to the same host only. The timeout of D015, per request. Leave the photo in the picture for the app switcher. Exclude the files from the backups with isExcludedFromBackup. Keep the alert of the call log on the day. One padding for the converter bar.

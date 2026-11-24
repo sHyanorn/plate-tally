@@ -1,6 +1,6 @@
 # Specification
 
-The plan is in TASKS.md. The reasons behind choices are in DECISIONS.md (D001 to D018).
+The plan is in TASKS.md. The reasons behind choices are in DECISIONS.md (D001 to D019).
 
 ## Purpose
 
@@ -110,8 +110,8 @@ Cost of a call = input_tokens times input price plus output_tokens times output 
 
 Source: vendor pricing page, read 2026-11-22. The prices live in one table in the Cost module with the date they were read.
 
-- A call whose response fails validation is costed from its `usage` fields.
-- A call is costed, logged and counted against the daily limit when its response has `usage` fields. A call without them, such as an HTTP error, is none of the three.
+- A call is costed, logged and counted against the daily limit when its response has a `usage` object with input_tokens and output_tokens, each 0 or more, whatever its status and whatever else is wrong with it. What is wrong is shown as an error with its reason code. A response without one is neither costed nor logged.
+- A call counts against the daily limit from before its request leaves. When it ends without usage, such as after a timeout or a cancel, it stops counting.
 - Day and month are local calendar day and month.
 
 ## Architecture
@@ -129,7 +129,7 @@ Logic lives in a Swift package at the repository root (Package.swift, Sources/, 
 
 Every other module uses Core. Tally uses all the others.
 
-The app target holds what needs the platform: the screens (day view, photo capture or pick, analysis, item list with editing, converter, settings for language, key, profile, activity factor and call limit), the design (D017), the string catalogs of the two languages, photo resizing and JPEG encoding, the HTTPS request through URLSession, and the keychain.
+The app target holds what needs the platform: the screens (day view, photo capture or pick, analysis, item list with editing, converter, settings for language, key, profile, activity factor and call limit), the design (D017), the string catalogs of the two languages, photo resizing and JPEG encoding, the HTTPS request through URLSession (no cache on disk, no cookie stored or sent, no redirect followed, 60 s for the whole call), and the keychain.
 
 Build and release:
 
@@ -146,6 +146,8 @@ Leaves the device, to the Anthropic API, once per analysis:
 - the fixed prompt,
 - the API key, as the credential of that request.
 
-Does not leave the device: profile, activity factor, meal records, cost log, call limit, and the key in any other way.
+No profile, record or other setting is sent. The profile, activity factor, meal records, cost log, call limit and interface language are three files in Application Support. The system backs that folder up by default, and the app does not exclude the files, so the device's backups include them. The key is sent in no other request. Its keychain item is for this device only and does not move to a new device.
+
+While the app is not active, a blank cover in the background colour lies over the analysis and the draft meal, the screens that show the photo, to keep the photo out of the picture of the screen that the system keeps for the app switcher.
 
 What Anthropic does with the photo is governed by its terms for the API. This project has no control over it. Do not photograph anything you do not want sent.
