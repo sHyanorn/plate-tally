@@ -98,6 +98,15 @@ private func run(_ transport: RecordingTransport) async throws -> Analysis.Outco
         #expect(problem.code == "bad_response")
     }
 
+    /// The response states its tokens, so it was billed, though it has no content (SPEC, Cost).
+    @Test func aResponseWithUsageButNoContentIsBilledAndIsABadResponse() async throws {
+        let body = Data(#"{"stop_reason":"end_turn","usage":{"input_tokens":1200,"output_tokens":110}}"#.utf8)
+        let outcome = try await run(RecordingTransport(status: 200, body: body))
+        #expect(outcome.call?.costUSD == usd0035)
+        guard case .failure(let problem) = outcome.items else { Issue.record("expected an error"); return }
+        #expect(problem.code == "bad_response")
+    }
+
     @Test func aFailureOfTheNetworkIsNotBilledAndIsNotRepeated() async throws {
         let failure = TransportFailure(
             what: "the request did not complete", expected: "a response from api.anthropic.com",

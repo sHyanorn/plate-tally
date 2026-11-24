@@ -44,11 +44,16 @@ extension EstimationError {
             reason: .http, what: "the request failed", expected: "status 200", saw: seen)
     }
 
+    static func noUsage(_ error: Error) -> EstimationError {
+        EstimationError(
+            reason: .badResponse, what: "the response has no usage",
+            expected: "an object with usage (input_tokens, output_tokens)", saw: describe(error))
+    }
+
     static func badResponse(_ error: Error) -> EstimationError {
         EstimationError(
-            reason: .badResponse, what: "the response is not a message with usage",
-            expected: "an object with content, stop_reason and usage (input_tokens, output_tokens)",
-            saw: describe(error))
+            reason: .badResponse, what: "the response is not a message",
+            expected: "an object with content and stop_reason", saw: describe(error))
     }
 
     static let refusal = EstimationError(

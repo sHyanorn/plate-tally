@@ -9,9 +9,25 @@ public struct Reply: Equatable, Sendable {
 }
 
 extension Estimation {
-    /// Judges the response of the API. It throws when there is no message with usage to bill, and
-    /// returns a `Reply` otherwise; a reply that fails R5 or R6 is a failure inside `items`.
+    /// Judges the response of the API. The usage is read first and on its own: a response that states its
+    /// tokens was billed, whatever else is wrong with it, so it gives a `Reply` and the call is costed, logged
+    /// and counted (SPEC, Cost). A response without usage throws. Anything else that is wrong, a status other
+    /// than 200 included, is a failure inside `items`.
     public static func read(status: Int, body: Data) throws(EstimationError) -> Reply {
+        let usage: Usage
+        do {
+            let counts = try JSONDecoder().decode(Billed.self, from: body).usage
+            usage = Usage(inputTokens: counts.inputTokens, outputTokens: counts.outputTokens)
+        } catch {
+            guard status == 200 else { throw .http(status: status, body: body) }
+            throw .noUsage(error)
+        }
+        return Reply(
+            usage: usage,
+            items: Result { () throws(EstimationError) in try items(status: status, body: body, usage: usage) })
+    }
+
+    private static func items(status: Int, body: Data, usage: Usage) throws(EstimationError) -> [FoodItem] {
         guard status == 200 else { throw .http(status: status, body: body) }
         let message: Message
         do {
@@ -19,14 +35,6 @@ extension Estimation {
         } catch {
             throw .badResponse(error)
         }
-        let usage = Usage(
-            inputTokens: message.usage.inputTokens, outputTokens: message.usage.outputTokens)
-        return Reply(
-            usage: usage,
-            items: Result { () throws(EstimationError) in try items(in: message, usage: usage) })
-    }
-
-    private static func items(in message: Message, usage: Usage) throws(EstimationError) -> [FoodItem] {
         switch message.stopReason {
         case "refusal": throw .refusal
         case "max_tokens": throw .cutOff(outputTokens: usage.outputTokens)
@@ -110,12 +118,8 @@ extension Estimation {
     }
 }
 
-private struct Message: Decodable {
-    struct Block: Decodable {
-        let type: String
-        let text: String?
-    }
-
+/// The part of a response that says what the call was billed.
+private struct Billed: Decodable {
     struct TokenCounts: Decodable {
         let inputTokens: Int
         let outputTokens: Int
@@ -126,13 +130,20 @@ private struct Message: Decodable {
         }
     }
 
+    let usage: TokenCounts
+}
+
+private struct Message: Decodable {
+    struct Block: Decodable {
+        let type: String
+        let text: String?
+    }
+
     let content: [Block]
     let stopReason: String?
-    let usage: TokenCounts
 
     enum CodingKeys: String, CodingKey {
         case content
         case stopReason = "stop_reason"
-        case usage
     }
 }

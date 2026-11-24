@@ -66,16 +66,27 @@ private let oneItem = #"{"items": [{"name": "rice", "grams": 100, "kcal": 130}]}
 
     @Test(arguments: [
         "", "not json", "[]", "{}", #"{"content": [], "stop_reason": "end_turn"}"#,
-        #"{"stop_reason": "end_turn", "usage": {"input_tokens": 1, "output_tokens": 1}}"#,
-        #"{"content": "x", "stop_reason": "end_turn", "usage": {"input_tokens": 1, "output_tokens": 1}}"#,
         #"{"content": [], "stop_reason": "end_turn", "usage": {"input_tokens": "1", "output_tokens": 1}}"#,
         #"{"content": [], "stop_reason": "end_turn", "usage": {"input_tokens": 1}}"#,
     ])
-    func aBodyWithoutContentAndUsageCannotBeBilledAndThrows(body: String) {
+    func aBodyWithoutUsageCannotBeBilledAndThrows(body: String) {
         let error = #expect(throws: EstimationError.self) {
             try Estimation.read(status: 200, body: Data(body.utf8))
         }
         #expect(error?.reason == .badResponse)
+    }
+
+    /// The usage is read on its own: a response that states its tokens was billed, whatever else is wrong
+    /// with it (SPEC, Cost).
+    @Test(arguments: [
+        #"{"stop_reason": "end_turn", "usage": {"input_tokens": 1, "output_tokens": 1}}"#,
+        #"{"content": "x", "stop_reason": "end_turn", "usage": {"input_tokens": 1, "output_tokens": 1}}"#,
+        #"{"content": [{"text": "x"}], "stop_reason": "end_turn", "usage": {"input_tokens": 1, "output_tokens": 1}}"#,
+    ])
+    func aBodyWithUsageAndABrokenEnvelopeIsBilledAndIsABadResponse(body: String) throws {
+        let reply = try Estimation.read(status: 200, body: Data(body.utf8))
+        #expect(reply.usage == Usage(inputTokens: 1, outputTokens: 1))
+        #expect(reply.items.failure?.reason == .badResponse)
     }
 
     @Test func aMissingUsageIsNamed() {
@@ -99,10 +110,11 @@ private let oneItem = #"{"items": [{"name": "rice", "grams": 100, "kcal": 130}]}
         #expect(error?.saw == #"status 529, body "<html>Overloaded</html>""#)
     }
 
+    /// Only status 200 is a message. A response of another status that states its usage was billed all the same.
     @Test(arguments: [201, 204, 301, 400, 429, 500, 529])
-    func onlyStatus200IsAMessage(status: Int) throws {
-        let body = try response(text: oneItem)
-        let error = #expect(throws: EstimationError.self) { try Estimation.read(status: status, body: body) }
-        #expect(error?.reason == .http)
+    func anotherStatusWithUsageIsBilledAndIsAnHTTPError(status: Int) throws {
+        let reply = try Estimation.read(status: status, body: response(text: oneItem))
+        #expect(reply.usage == Usage(inputTokens: 100, outputTokens: 50))
+        #expect(reply.items.failure?.reason == .http)
     }
 }
