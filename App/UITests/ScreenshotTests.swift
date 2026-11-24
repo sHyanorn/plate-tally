@@ -119,16 +119,17 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
-    /// The call log cannot be written after the call. The flow says so once, over the draft, and the day does
-    /// not say it again.
+    /// The call log cannot be written after the call. The flow says so once, over the draft, which stays, and
+    /// the day does not say it again.
     func testACallLogThatCannotBeWrittenIsReportedOnceOverTheDraft() {
         eachAppearance(["-ui-key", "-ui-calls-unwritable"], looks: ["light"]) { app, _ in
             app.buttons["add-meal"].tap()
             app.buttons["Choose photo"].tap()
             let alert = app.alerts["Could not save"]
             XCTAssertTrue(alert.waitForExistence(timeout: 10))
-            XCTAssertTrue(app.staticTexts["meal-title"].waitForExistence(timeout: 5))
             alert.buttons["OK"].tap()
+            // The draft is still there, so the alert came over the flow and did not close it.
+            XCTAssertTrue(app.staticTexts["meal-title"].waitForExistence(timeout: 5))
             XCTAssertFalse(app.alerts.firstMatch.waitForExistence(timeout: 2))
 
             app.buttons["meal-save"].tap()

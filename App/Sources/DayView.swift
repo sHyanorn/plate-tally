@@ -162,9 +162,13 @@ struct DayView: View {
         }
         .problemAlert("Could not use the photo", $photoProblem)
         .problemAlert("Could not delete", $deleteProblem)
+        // While the capture flow is open it shows this problem itself: from the day, the alert would close the
+        // cover and lose the draft.
         .problemAlert(
             "Could not save",
-            Binding(main: { model.storeProblem }, set: { if $0 == nil { model.dismissStoreProblem() } })
+            Binding(
+                main: { photo == nil ? model.storeProblem : nil },
+                set: { if $0 == nil { model.dismissStoreProblem() } })
         )
         .sensoryFeedback(.success, trigger: storedItems) { old, new in new > old }
         .onChange(of: scenePhase) { _, phase in

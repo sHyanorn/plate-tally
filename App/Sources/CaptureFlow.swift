@@ -29,6 +29,12 @@ struct CaptureFlow: View {
                     onResult: { meal, cost in draft = Draft(meal: meal, cost: cost) }, onClose: onFinish)
             }
         }
+        // The call log is written when the call comes back, while this cover is up. The day leaves the problem
+        // to the flow: an alert of the day would close the cover and lose the draft.
+        .problemAlert(
+            "Could not save",
+            Binding(main: { model.storeProblem }, set: { if $0 == nil { model.dismissStoreProblem() } })
+        )
         // The system keeps a picture of the screen for the app switcher when the app leaves the foreground.
         // The photo is never stored (R11), so the canvas covers it from the moment the app is no longer active.
         .overlay {
