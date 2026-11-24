@@ -11,10 +11,10 @@ struct URLSessionTransport: Sendable {
     let keys: any KeyStore
     let session: URLSession
 
-    /// The default session keeps no cache and no cookies.
+    /// The default session keeps no cache and no cookies. It follows no redirect.
     init(keys: any KeyStore, configuration: URLSessionConfiguration = .ephemeral) {
         self.keys = keys
-        self.session = URLSession(configuration: configuration)
+        self.session = URLSession(configuration: configuration, delegate: RedirectRefusal(), delegateQueue: nil)
     }
 
     var transport: Transport {
@@ -58,5 +58,16 @@ struct URLSessionTransport: Sendable {
             (error as? URLError).map { "URL error \($0.code.rawValue), \($0.localizedDescription)" }
             ?? String(describing: error)
         return TransportFailure(what: "the request did not complete", expected: "a response from \(host)", saw: reason)
+    }
+}
+
+/// Refuses every redirect, so a 3xx is the final response and reaches the package, which takes it for an error.
+/// Followed, it would carry the key, and with a 307 the photo, to another host in a second request (R4, R22, R23).
+private final class RedirectRefusal: NSObject, URLSessionTaskDelegate {
+    func urlSession(
+        _ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest
+    ) async -> URLRequest? {
+        nil
     }
 }
