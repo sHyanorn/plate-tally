@@ -104,6 +104,9 @@ struct DayView: View {
                 }
                 .padding(.horizontal, Metrics.margin)
                 .padding(.vertical, 8)
+                // The canvas hides the meals that scroll under the bar, as in the converter. Without it they
+                // show between and below the pills, which stack at accessibility text sizes.
+                .background(Palette.canvas)
             }
         }
         .sheet(isPresented: $showSettings) { SettingsView(model: model, keys: keys) }
